@@ -20,7 +20,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
@@ -47,13 +46,9 @@ import io.sloeber.ui.Messages;
 
 public class BoardSelectionPage extends AbstractCPropertyTab {
 	private static final String TRUE = "TRUE"; //$NON-NLS-1$
-
 	private static final String FALSE = "FALSE"; //$NON-NLS-1$
 
-	// global stuff to allow to communicate outside this class
 	public Text myFeedbackControl;
-
-	// GUI elements
 	protected LabelCombo myControlBoardsTxtFile;
 	protected LabelCombo mycontrolBoardName;
 	protected LabelCombo myControlUploadProtocol;
@@ -61,22 +56,9 @@ public class BoardSelectionPage extends AbstractCPropertyTab {
 	protected LabelCombo[] myBoardOptionCombos = null;
 	protected Listener myBoardSelectionChangedListener = null;
 	protected BoardDescriptor myBoardID = null;
-	private Composite myComposite;
+
 	private TreeMap<String, String> myAllBoardsFiles = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 	private org.eclipse.swt.widgets.Button myPasswordButton;
-
-	/**
-	 * Get the configuration we are currently working in. The configuration is null
-	 * if we are in the create sketch wizard.
-	 *
-	 * @return the configuration to save info into
-	 */
-	public ICConfigurationDescription getConfdesc() {
-		if (page != null) {
-			return getResDesc().getConfiguration();
-		}
-		return null;
-	}
 
 	private Listener myBoardFileModifyListener = new Listener() {
 		@Override
@@ -130,8 +112,20 @@ public class BoardSelectionPage extends AbstractCPropertyTab {
 			isPageComplete();
 		}
 	};
+	private Composite myParameterComposite;
 
-
+	/**
+	 * Get the configuration we are currently working in. The configuration is null
+	 * if we are in the create sketch wizard.
+	 *
+	 * @return the configuration to save info into
+	 */
+	public ICConfigurationDescription getConfdesc() {
+		if (page != null) {
+			return getResDesc().getConfiguration();
+		}
+		return null;
+	}
 
 	@Override
 	public void createControls(Composite parent, ICPropertyProvider provider) {
@@ -144,20 +138,22 @@ public class BoardSelectionPage extends AbstractCPropertyTab {
 		myBoardSelectionChangedListener = BoardSelectionChangedListener;
 	}
 
-
-	private void createLine() {
-		Label line = new Label(myComposite, SWT.SEPARATOR | SWT.HORIZONTAL | SWT.BOLD);
+	private void createLine(Composite composite) {
+		Label line = new Label(composite, SWT.SEPARATOR | SWT.HORIZONTAL | SWT.BOLD);
 		GridData gridData = new GridData(GridData.FILL_HORIZONTAL);
 		gridData.horizontalSpan = 3;
 		line.setLayoutData(gridData);
 	}
 
 	public void draw(Composite parent) {
-		Composite inComp = parent;
+		Composite mainComp = parent;
 		if (usercomp != null) {
-			inComp = usercomp;
+			mainComp = usercomp;
 		}
-		myComposite = inComp;
+		GridLayout rowLayout =new GridLayout();
+		rowLayout.numColumns = 1;
+		mainComp.setLayout(rowLayout);
+		
 		if (myBoardID == null) {
 			myBoardID = BoardDescriptor.makeBoardDescriptor(getConfdesc());
 			if (myBoardID.getActualCoreCodePath() == null) {
@@ -174,28 +170,30 @@ public class BoardSelectionPage extends AbstractCPropertyTab {
 		if (myAllBoardsFiles.isEmpty()) {
 			Activator.log(new Status(IStatus.ERROR, Activator.getId(), Messages.error_no_platform_files_found, null));
 		}
-
+		
+		/*We know all is well start drawing*/
+		Composite boardComposite = new Composite (mainComp,SWT.NONE);
 		GridLayout theGridLayout = new GridLayout();
 		theGridLayout.numColumns = 3;
-		myComposite.setLayout(theGridLayout);
+		boardComposite.setLayout(theGridLayout);
 
-		myControlBoardsTxtFile = new LabelCombo(myComposite, Messages.BoardSelectionPage_platform_folder, null, 2, true);
+		myControlBoardsTxtFile = new LabelCombo(boardComposite, Messages.BoardSelectionPage_platform_folder, null, 2,
+				true);
 		myControlBoardsTxtFile.setItems(myAllBoardsFiles.keySet().toArray(new String[0]));
-		createLine();
+		createLine(boardComposite);
 
-
-		mycontrolBoardName = new LabelCombo(myComposite, Messages.BoardSelectionPage_board, null, 2, true);
+		mycontrolBoardName = new LabelCombo(boardComposite, Messages.BoardSelectionPage_board, null, 2, true);
 		mycontrolBoardName.setItems(myAllBoardsFiles.keySet().toArray(new String[0]));
 
-		myControlUploadProtocol = new LabelCombo(myComposite, Messages.BoardSelectionPage_upload_protocol, null, 2,
+		myControlUploadProtocol = new LabelCombo(boardComposite, Messages.BoardSelectionPage_upload_protocol, null, 2,
 				true);
 		myControlUploadProtocol.setItems(myAllBoardsFiles.keySet().toArray(new String[0]));
 
 		// ----
-		myControlUploadPort = new LabelCombo(myComposite, Messages.ui_port, null, 1, false);
+		myControlUploadPort = new LabelCombo(boardComposite, Messages.ui_port, null, 1, false);
 
 		myControlUploadPort.setItems(ArrayUtil.addAll(SerialManager.listNetworkPorts(), SerialManager.listComPorts()));
-		myPasswordButton = new org.eclipse.swt.widgets.Button(myComposite, SWT.PUSH | SWT.CENTER);
+		myPasswordButton = new org.eclipse.swt.widgets.Button(boardComposite, SWT.PUSH | SWT.CENTER);
 		myPasswordButton.setText(Messages.set_or_remove_password);
 		myPasswordButton.addListener(SWT.Selection, new Listener() {
 			@Override
@@ -208,7 +206,7 @@ public class BoardSelectionPage extends AbstractCPropertyTab {
 								new Status(IStatus.ERROR, Activator.getId(), Messages.port_is_not_a_computer_name));
 					} else {
 						PasswordManager passwordManager = new PasswordManager();
-						PasswordDialog dialog = new PasswordDialog(myComposite.getShell());
+						PasswordDialog dialog = new PasswordDialog(boardComposite.getShell());
 						passwordManager.setHost(host);
 						dialog.setPasswordManager(passwordManager);
 						dialog.open();
@@ -217,20 +215,23 @@ public class BoardSelectionPage extends AbstractCPropertyTab {
 				}
 			}
 		});
-		createLine();
+		createLine(boardComposite);
 
 		TreeMap<String, String> menus = PackageManager.getAllmenus();
 
 		myBoardOptionCombos = new LabelCombo[menus.size()];
+		myParameterComposite = new Composite(mainComp,  SWT.V_SCROLL);
+		GridLayout theParamLayout = new GridLayout(2,false);
+		myParameterComposite.setLayout(theParamLayout);
 		int index = 0;
 		for (Map.Entry<String, String> curMenu : menus.entrySet()) {
-			myBoardOptionCombos[index] = new LabelCombo(myComposite, curMenu.getValue(), curMenu.getKey(), 2, true);
+			myBoardOptionCombos[index] = new LabelCombo(myParameterComposite, curMenu.getValue(), curMenu.getKey(), 1, true);
 			myBoardOptionCombos[index++].addListener(myLabelComboListener);
 
 		}
 
 		// Create the control to alert parents of changes
-		myFeedbackControl = new Text(myComposite, SWT.None);
+		myFeedbackControl = new Text(mainComp, SWT.None);
 		myFeedbackControl.setVisible(false);
 		myFeedbackControl.setEnabled(false);
 		GridData theGriddata;
@@ -244,8 +245,8 @@ public class BoardSelectionPage extends AbstractCPropertyTab {
 		mycontrolBoardName.addListener(SWT.Modify, myBoardModifyListener);
 		myControlBoardsTxtFile.addListener(SWT.Modify, myBoardFileModifyListener);
 
-		enableControls();
-		Dialog.applyDialogFont(myComposite);
+		//enableControls();
+		Dialog.applyDialogFont(mainComp);
 	}
 
 	private static String tidyUpLength(String longName) {
@@ -286,26 +287,15 @@ public class BoardSelectionPage extends AbstractCPropertyTab {
 	}
 
 	protected void enableControls() {
-		myComposite.setEnabled(false);
-		myComposite.setVisible(false);
 		for (LabelCombo curLabelCombo : myBoardOptionCombos) {
-			curLabelCombo.setVisible(true);
+			curLabelCombo.setVisibility();
 		}
-
-		Display display = myComposite.getDisplay();
-		myComposite.setBackground(display.getSystemColor(SWT.COLOR_BLUE));
-		myComposite.pack();
-		myComposite.layout(true, true);
-		myComposite.requestLayout();
-
-		myComposite.setEnabled(true);
-		myComposite.setVisible(true);
-
-		myComposite.redraw();
-
-		// mComposite.getShell().pack();
-		// mComposite.getShell().redraw();
-
+		if (usercomp != null) {
+			usercomp.layout();
+		}
+		myParameterComposite.layout();
+		//myParameterComposite.pack();
+		myParameterComposite.redraw();
 	}
 
 	@Override
@@ -457,8 +447,10 @@ public class BoardSelectionPage extends AbstractCPropertyTab {
 		Map<String, String> options = new HashMap<>();
 		for (LabelCombo curLabelCombo : myBoardOptionCombos) {
 			if (curLabelCombo.isVisible()) {
-				options.put(curLabelCombo.getID(),
-						myBoardID.getMenuItemIDFromMenuItemName(curLabelCombo.getValue(), curLabelCombo.getID()));
+				String itemID = curLabelCombo.getID();
+				String itemValue = curLabelCombo.getValue();
+				String menuItemID = myBoardID.getMenuItemIDFromMenuItemName(itemValue, itemID);
+				options.put(itemID, menuItemID);
 			}
 		}
 		return options;
@@ -468,8 +460,8 @@ public class BoardSelectionPage extends AbstractCPropertyTab {
 		if (myBoardID == null) {
 			myBoardID = BoardDescriptor.makeBoardDescriptor(getConfdesc());
 		}
-		if (myBoardOptionCombos != null) {// only update the values if the
-			// page has been drawn
+		// only update the values if the page has been drawn
+		if (myBoardOptionCombos != null) {
 			myBoardID.setreferencingBoardsFile(getSelectedBoardsFile());
 			myBoardID.setBoardName(getBoardName());
 			myBoardID.setOptions(getOptions());

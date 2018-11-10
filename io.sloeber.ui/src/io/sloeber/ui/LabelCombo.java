@@ -70,12 +70,19 @@ public class LabelCombo {
 		myCombo.setText(value);
 	}
 
-	public void setVisible(boolean visible) {
-		boolean newvisible = visible && (myCombo.getItemCount() > 0);
-		myLabel.setVisible(newvisible);
-		myCombo.setVisible(newvisible);
-		myComboGriddata.exclude = !newvisible;
-		myLabelGriddata.exclude = !newvisible;
+	/**
+	 * If there are items in the list make the item visble
+	 * otherwise make it invisible
+	 * 
+	 */
+	public void setVisibility() {
+		boolean newVisible =  (myCombo.getItemCount() > 0);
+		myLabel.setVisible(newVisible);
+		myCombo.setVisible(newVisible);
+		myComboGriddata.exclude = !newVisible;
+		myLabelGriddata.exclude = !newVisible;
+		myCombo.setLayoutData(myComboGriddata);
+		myLabel.setLayoutData(myLabelGriddata);
 	}
 
 	public boolean isValid() {
