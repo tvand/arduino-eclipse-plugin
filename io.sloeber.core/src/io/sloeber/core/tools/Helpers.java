@@ -57,6 +57,7 @@ import io.sloeber.core.Messages;
 import io.sloeber.core.api.BoardDescriptor;
 import io.sloeber.core.api.CompileOptions;
 import io.sloeber.core.api.Defaults;
+import io.sloeber.core.api.PackageManager;
 import io.sloeber.core.api.Preferences;
 import io.sloeber.core.common.Common;
 import io.sloeber.core.common.ConfigurationPreferences;
@@ -67,7 +68,7 @@ import io.sloeber.core.managers.Library;
 import io.sloeber.core.managers.Tool;
 import io.sloeber.core.managers.ToolDependency;
 
-@SuppressWarnings({"nls","unused"})
+@SuppressWarnings({"nls"})
 /**
  * ArduinoHelpers is a static class containing general purpose functions
  *
@@ -483,6 +484,13 @@ public class Helpers extends Common {
 		setBuildEnvironmentVariable(contribEnv, confDesc, ENV_KEY_BUILD_ARCH, architecture.toUpperCase());
 		setBuildEnvironmentVariable(contribEnv, confDesc, ENV_KEY_HARDWARE_PATH, hardwarePath.toString());
 		setBuildEnvironmentVariable(contribEnv, confDesc, ENV_KEY_PLATFORM_PATH, platformPath.toString());
+		//work around needed because of https://bugs.eclipse.org/bugs/show_bug.cgi?id=560330
+		//it should have been 
+		//A.BUILD.PATH={ProjDirPath}{DirectoryDelimiter}{ConfigName}
+		// in pre_processing_platform_default.txt 
+		String buildPath=confDesc.getProjectDescription().getProject().getLocation().append(confDesc.getName()).toOSString();
+		setBuildEnvironmentVariable(contribEnv, confDesc, "A.BUILD.PATH", buildPath);
+		//end of workaround
 
 
 		if (Platform.getOS().equals(Platform.OS_WIN32)) {
@@ -518,6 +526,7 @@ public class Helpers extends Common {
 	/**
 	 * This method parses a file with environment variables like the platform.txt
 	 * file for values to be added to the environment variables
+	 * Ignore lines starting with #
 	 *
 	 * @param contribEnv
 	 * @param confDesc
@@ -532,10 +541,8 @@ public class Helpers extends Common {
 
 			// Read File Line By Line
 			while ((strLine = br.readLine()) != null) {
-				// Ignore everything after first #
-				String realData[] = strLine.split("#");
-				if (realData.length > 0) {
-					String var[] = realData[0].split("=", 2);
+				if (!strLine.startsWith("#")) {
+					String var[] = strLine.split("=", 2);
 					if (var.length == 2) {
 						String value = var[1].trim();
 						setBuildEnvironmentVariable(contribEnv, confDesc, MakeKeyString(prefix, var[0]),
@@ -636,66 +643,61 @@ public class Helpers extends Common {
 
 	}
 
-	private static void addPlatformFileTools(ArduinoPlatform platform, IContributedEnvironment contribEnv,
+	public static void addPlatformFileTools(ArduinoPlatform platform, IContributedEnvironment contribEnv,
 			ICConfigurationDescription confDesc, boolean reportToolNotFound) {
-		if (platform.getToolsDependencies() != null) {
-			for (ToolDependency tool : platform.getToolsDependencies()) {
-				String keyString = MakeKeyString("runtime.tools." + tool.getName() + ".path");
-				Tool theTool = tool.getTool();
-				if (theTool == null) {
-					if (reportToolNotFound) {
-						Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID,
-								"Error adding platformFileTools while processing tool " + tool.getName() + " version "
-										+ tool.getVersion() + " Installpath is null"));
-					}
-				} else {
-					String valueString = theTool.getInstallPath().toOSString();
-					setBuildEnvironmentVariable(contribEnv, confDesc, keyString, valueString);
-					keyString = MakeKeyString("runtime.tools." + tool.getName() + tool.getVersion() + ".path");
-					setBuildEnvironmentVariable(contribEnv, confDesc, keyString, valueString);
-					keyString = MakeKeyString("runtime.tools." + tool.getName() + '-' + tool.getVersion() + ".path");
-					setBuildEnvironmentVariable(contribEnv, confDesc, keyString, valueString);
+		if(platform==null) {
+			return;
+		}
+		if (platform.getToolsDependencies() == null) {
+			return;
+		}
+		addDependentTools(platform.getToolsDependencies(), contribEnv, confDesc, reportToolNotFound);
+
+	}
+
+	private static void addDependentTools(Iterable<ToolDependency> tools, IContributedEnvironment contribEnv,
+			ICConfigurationDescription confDesc, boolean reportToolNotFound) {
+
+		for (ToolDependency tool : tools) {
+			String keyString = MakeKeyString("runtime.tools." + tool.getName() + ".path");
+			Tool theTool = tool.getTool();
+			if (theTool == null) {
+				if (reportToolNotFound) {
+					Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID,
+							"Error adding platformFileTools while processing tool " + tool.getName() + " version "
+									+ tool.getVersion() + " Installpath is null"));
 				}
+			} else {
+				String valueString = theTool.getInstallPath().toOSString();
+				setBuildEnvironmentVariable(contribEnv, confDesc, keyString, valueString);
+				keyString = MakeKeyString("runtime.tools." + tool.getName() + tool.getVersion() + ".path");
+				setBuildEnvironmentVariable(contribEnv, confDesc, keyString, valueString);
+				keyString = MakeKeyString("runtime.tools." + tool.getName() + '-' + tool.getVersion() + ".path");
+				setBuildEnvironmentVariable(contribEnv, confDesc, keyString, valueString);
 			}
 		}
+
 	}
 
 	private static void setTheEnvironmentVariablesAddThePlatformInfo(BoardDescriptor boardDescriptor,
 			IContributedEnvironment contribEnv, ICConfigurationDescription confDesc) {
+
+		//update the gobal variables if needed
+		PackageManager.updateGlobalEnvironmentVariables();
 		File referencingPlatformFile = boardDescriptor.getReferencingPlatformFile();
 		File referencedPlatformFile = boardDescriptor.getreferencedPlatformFile();
-		String architecture = boardDescriptor.getArchitecture();
-		for (ArduinoPlatform curPlatform : InternalPackageManager.getInstalledPlatforms()) {
-			addPlatformFileTools(curPlatform, contribEnv, confDesc, false);
-		}
-		ArduinoPlatform LatestArduinoPlatform = null;
-		for (ArduinoPlatform curPlatform : InternalPackageManager.getLatestInstalledPlatforms()) {
-			if (architecture.equalsIgnoreCase(curPlatform.getArchitecture())) {
-				addPlatformFileTools(curPlatform, contribEnv, confDesc, false);
-				if ("arduino".equalsIgnoreCase(curPlatform.getPackage().getMaintainer())) {
-					LatestArduinoPlatform = curPlatform;
-				}
-			}
-		}
-		// add the newest arduino avr platform again for the idiots wanting to
-		// reference arduino without referencing it
-		if (LatestArduinoPlatform != null) {
-			addPlatformFileTools(LatestArduinoPlatform, contribEnv, confDesc, true);
-		}
-		// todo implement this jsonBasedPlatformManagement trigger
+		ArduinoPlatform referencingPlatform = InternalPackageManager.getPlatform(referencingPlatformFile);
+		ArduinoPlatform referencedPlatform = InternalPackageManager.getPlatform(referencedPlatformFile);
+
 		boolean jsonBasedPlatformManagement = !Preferences.getUseArduinoToolSelection();
 		if (jsonBasedPlatformManagement) {
-			// add the referenced platform before the real platform
-			ArduinoPlatform referencedPlatform = InternalPackageManager.getPlatform(referencedPlatformFile);
-			if ((referencedPlatform != null) && (referencedPlatform != LatestArduinoPlatform)) {
-				addPlatformFileTools(referencedPlatform, contribEnv, confDesc, true);
-			}
-			// and the real platform
-			ArduinoPlatform referencingPlatform = InternalPackageManager.getPlatform(referencingPlatformFile);
-			if ((referencingPlatform != null) && (referencingPlatform != LatestArduinoPlatform)) {
-
-				addPlatformFileTools(referencingPlatform, contribEnv, confDesc, false);
-			}
+			// overrule the Arduino IDE way of working and use the json refereced tools
+			addPlatformFileTools(referencedPlatform, contribEnv, confDesc, true);
+			addPlatformFileTools(referencingPlatform, contribEnv, confDesc, false);
+		} else {
+			//standard arduino IDE way
+			addPlatformFileTools(referencingPlatform, contribEnv, confDesc, false);
+			addPlatformFileTools(referencedPlatform, contribEnv, confDesc, true);
 		}
 	}
 
@@ -823,6 +825,9 @@ public class Helpers extends Common {
 			String recipeKey = get_ENV_KEY_RECIPE(action);
 			String recipe = getBuildEnvironmentVariable(confDesc, recipeKey, new String(), false);
 			recipe=recipe.replace("-DARDUINO_BSP_VERSION=\"${A.VERSION}\"", "\"-DARDUINO_BSP_VERSION=\\\"${A.VERSION}\\\"\"");
+			if(! ACTION_C_COMBINE.equals(action)) {
+				recipe=recipe.replace(" -o ", " ");
+			}
 
 
 			if (ACTION_C_COMBINE.equals(action)) {
@@ -877,7 +882,7 @@ public class Helpers extends Common {
 				// FQN
 				if (name.startsWith("A.TOOLS.")) {
 					String skipVars[]={"A.NETWORK.PASSWORD","A.NETWORK.PORT","A.UPLOAD.VERBOSE","A.NETWORK.AUTH"};
-					List<String> skipVarslist=new ArrayList<String>(Arrays.asList(skipVars));
+					List<String> skipVarslist=new ArrayList<>(Arrays.asList(skipVars));
 					String toolID = curVariable.getName().split("\\.")[2];
 					String recipe = curVariable.getValue();
 					int indexOfVar = recipe.indexOf("${A.");
@@ -910,18 +915,18 @@ public class Helpers extends Common {
 					String moddedValue=curVariable.getValue().replace("\"","\\\"");
 					setBuildEnvironmentVariable(contribEnv, confDesc, name, moddedValue);
 					}
-					if("A.BUILD.USB_PRODUCT".equalsIgnoreCase(name)){
+					else if("A.BUILD.USB_PRODUCT".equalsIgnoreCase(name)){
 					String moddedValue=curVariable.getValue().replace("\"","\\\"");
 					setBuildEnvironmentVariable(contribEnv, confDesc, name, moddedValue);
 					}
-					if("A.BUILD.USB_FLAGS".equalsIgnoreCase(name)){
-					String moddedValue=curVariable.getValue().replace("'", "\"");
-					setBuildEnvironmentVariable(contribEnv, confDesc, name, moddedValue);
-					}
-					if("A.BUILD.EXTRA_FLAGS".equalsIgnoreCase(name)){
-						//for radino
-						//radinoCC1101.build.extra_flags=-DUSB_VID={build.vid} -DUSB_PID={build.pid} '-DUSB_PRODUCT={build.usb_product}'
+					else  {
+						//should use regular expressions or something else better here or right before execution
 						String moddedValue=curVariable.getValue().replace("'-DUSB_PRODUCT=${A.BUILD.USB_PRODUCT}'","\"-DUSB_PRODUCT=${A.BUILD.USB_PRODUCT}\"");
+						moddedValue=moddedValue.replace("'-DUSB_MANUFACTURER=${A.BUILD.USB_MANUFACTURER}'","\"-DUSB_MANUFACTURER=${A.BUILD.USB_MANUFACTURER}\"");
+						moddedValue=moddedValue.replace("'-DUSB_PRODUCT=\"${A.BUILD.BOARD}\"'","\"-DUSB_PRODUCT=\\\"${A.BUILD.BOARD}\\\"\"");
+						moddedValue=moddedValue.replace("-DMBEDTLS_USER_CONFIG_FILE=\"mbedtls/user_config.h\"","\"-DMBEDTLS_USER_CONFIG_FILE=\\\"mbedtls/user_config.h\\\"\"");
+						moddedValue=moddedValue.replace("-DMBEDTLS_CONFIG_FILE=\"mbedtls/esp_config.h\"","\"-DMBEDTLS_CONFIG_FILE=\\\"mbedtls/esp_config.h\\\"\"");
+						moddedValue=moddedValue.replace("'", "\"");
 						setBuildEnvironmentVariable(contribEnv, confDesc, name, moddedValue);
 					}
 				}
@@ -943,6 +948,12 @@ public class Helpers extends Common {
 		setHookBuildEnvironmentVariable(contribEnv, confDesc, "A.JANTJE.SKETCH.POSTBUILD","A.RECIPE.HOOKS.SKETCH.POSTBUILD.XX.PATTERN",false);
 		
 
+		//add -relax for mega boards
+		String buildMCU =getBuildEnvironmentVariable(confDesc, Const.ENV_KEY_BUILD_MCU, new String(), false);
+		if ("atmega2560".equalsIgnoreCase(buildMCU)){
+				String c_elf_flags =getBuildEnvironmentVariable(confDesc, Const.ENV_KEY_BUILD_COMPILER_C_ELF_FLAGS, new String(), false);
+				setBuildEnvironmentVariable(confDesc, Const.ENV_KEY_BUILD_COMPILER_C_ELF_FLAGS, c_elf_flags +",--relax");
+			}
 	}
 
 

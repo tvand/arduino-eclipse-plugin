@@ -4,7 +4,7 @@
 	<parent>
         <groupId>com.github.brodykenrick.arduino-eclipse-plugin</groupId>
 		<artifactId>io.sloeber.parent</artifactId>
-		<version>4.3.1-SNAPSHOT</version>
+		<version>4.3.3-SNAPSHOT</version>
     <relativePath>../io.sloeber.parent</relativePath>
 	</parent>
   
@@ -33,9 +33,9 @@
 				</executions>
 				<configuration>
 					<formats>
-						<win32>tar.gz</win32>
-						<linux>tar.gz</linux>
-						<macosx>tar.gz</macosx>
+						<win32>zip</win32>
+						<linux>zip</linux>
+						<macosx>zip</macosx>
 					</formats>
 					<products>
 						<product>
