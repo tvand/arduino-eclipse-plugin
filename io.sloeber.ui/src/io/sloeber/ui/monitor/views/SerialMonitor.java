@@ -1,15 +1,23 @@
 package io.sloeber.ui.monitor.views;
 
+import static io.sloeber.core.api.Const.*;
+import static io.sloeber.ui.Activator.*;
+
 import java.io.File;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.io.FileUtils;
 import org.eclipse.cdt.core.model.CoreModel;
 import org.eclipse.cdt.core.settings.model.ICConfigurationDescription;
 import org.eclipse.core.resources.IProject;
@@ -59,7 +67,6 @@ import org.eclipse.ui.themes.IThemeManager;
 import io.sloeber.core.api.ISerialUser;
 import io.sloeber.core.api.Serial;
 import io.sloeber.core.api.SerialManager;
-import io.sloeber.ui.Activator;
 import io.sloeber.ui.Messages;
 import io.sloeber.ui.helpers.MyPreferences;
 import io.sloeber.ui.listeners.ProjectExplorerListener;
@@ -69,9 +76,9 @@ import io.sloeber.ui.monitor.internal.SerialListener;
  * SerialMonitor implements the view that shows the serial monitor. Serial
  * monitor get sits data from serial Listener. 1 serial listener is created per
  * serial connection.
- * 
+ *
  */
-@SuppressWarnings({"unused"})
+@SuppressWarnings({ "unused" })
 public class SerialMonitor extends ViewPart implements ISerialUser {
 
 	/**
@@ -81,15 +88,26 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	// "io.sloeber.ui.monitor.views.SerialMonitor";
 	// If you increase this number you must also assign colors in plugin.xml
 	static private final int MY_MAX_SERIAL_PORTS = 6;
+	static private final boolean[] serialPortAllocated = new boolean[MY_MAX_SERIAL_PORTS];
+
+	// These StringBuilders are used to create discrete lines of text when in
+	// timestamp
+	// mode.
+	static private final StringBuilder[] lineBuffer = new StringBuilder[MY_MAX_SERIAL_PORTS];
+
+	static private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss"); //$NON-NLS-1$
 
 	static private final URL IMG_CLEAR;
 	static private final URL IMG_LOCK;
 	static private final URL IMG_FILTER;
+	static private final URL IMG_TIMESTAMP;
+	static private final String newLine = System.getProperty("line.separator"); //$NON-NLS-1$
 
 	static {
-		IMG_CLEAR = Activator.getDefault().getBundle().getEntry("icons/clear_console.png"); //$NON-NLS-1$
-		IMG_LOCK = Activator.getDefault().getBundle().getEntry("icons/lock_console.png"); //$NON-NLS-1$
-		IMG_FILTER = Activator.getDefault().getBundle().getEntry("icons/filter_console.png"); //$NON-NLS-1$
+		IMG_CLEAR = getDefault().getBundle().getEntry("icons/clear_console.png"); //$NON-NLS-1$
+		IMG_LOCK = getDefault().getBundle().getEntry("icons/lock_console.png"); //$NON-NLS-1$
+		IMG_FILTER = getDefault().getBundle().getEntry("icons/filter_console.png"); //$NON-NLS-1$
+		IMG_TIMESTAMP = getDefault().getBundle().getEntry("icons/timestamp_console.png"); //$NON-NLS-1$
 	}
 
 	// Connect to a serial port
@@ -103,10 +121,12 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	private Action plotterFilter;
 	// clear serial monitor
 	private Action clear;
+	// Toggle timestamps on serial messages.
+	private Action showTimestamps;
 
 	// The string to send to the serial port
 	protected Text sendString;
-	//  control contains the output of the serial port
+	// control contains the output of the serial port
 	static protected StyledText monitorOutput;
 	// Port used when doing actions
 	protected ComboViewer serialPorts;
@@ -123,6 +143,8 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	// link to color registry
 	private ColorRegistry colorRegistry = null;
 
+	private boolean timestampMode = true;
+
 	static private Composite parent;
 
 	/*
@@ -138,7 +160,12 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 
 	private static SerialMonitor instance = null;
 
-	public static SerialMonitor getSerialMonitor() {
+	/**
+	 * Call this method to get the instance of SerialMonitor.
+	 *
+	 * @return the (singleton) instance of SerialMonitor.
+	 */
+	public static synchronized SerialMonitor getSerialMonitor() {
 		if (instance == null) {
 			instance = new SerialMonitor();
 		}
@@ -146,11 +173,14 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	}
 
 	/**
-	 * The constructor.
+	 * This constructor should only be called by Eclipse or
+	 * {@link #getSerialMonitor()}.
+	 *
+	 * It is only public because Eclipse needs to call it.
 	 */
 	public SerialMonitor() {
 		if (instance != null) {
-			Activator.log(new Status(IStatus.ERROR, Activator.getId(), "You can only have one serial monitor")); //$NON-NLS-1$
+			log(new Status(IStatus.ERROR, PLUGIN_ID, "You can only have one serial monitor")); //$NON-NLS-1$
 		}
 		instance = this;
 		serialConnections = new LinkedHashMap<>(MY_MAX_SERIAL_PORTS);
@@ -160,7 +190,8 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 		serialColorID = new String[MY_MAX_SERIAL_PORTS];
 		for (int i = 0; i < MY_MAX_SERIAL_PORTS; i++) {
 			serialColorID[i] = "io.sloeber.serial.color." + (1 + i); //$NON-NLS-1$
-
+			serialPortAllocated[i] = false;
+			lineBuffer[i] = new StringBuilder();
 		}
 		SerialManager.registerSerialUser(this);
 
@@ -171,9 +202,8 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 					IEclipsePreferences myScope = InstanceScope.INSTANCE.getNode(MyPreferences.NODE_ARDUINO);
 					int curFsiStatus = myScope.getInt(MY_FLAG_MONITOR, 0) + 1;
 					myScope.putInt(MY_FLAG_MONITOR, curFsiStatus);
-					URL mypluginStartInitiator = new URL(uri.replace(" ", new String()) //$NON-NLS-1$ 
-							+ Integer.toString(curFsiStatus));
-					mypluginStartInitiator.getContent();
+					URI tt= new URI(uri.replace(SPACE, EMPTY) + Integer.toString(curFsiStatus));
+					tt.toURL().getContent();
 				} catch (Exception e) {// JABA is not going to add code
 				}
 				return Status.OK_STATUS;
@@ -196,8 +226,7 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	}
 
 	/**
-	 * This is a callback that will allow us to create the viewer and initialize
-	 * it.
+	 * This is a callback that will allow us to create the viewer and initialize it.
 	 */
 	@Override
 	public void createPartControl(Composite parent1) {
@@ -250,8 +279,7 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 
 			@Override
 			public void selectionChanged(SelectionChangedEvent event) {
-				MyPreferences
-						.setLastUsedSerialLineEnd(lineTerminator.getCombo().getSelectionIndex());
+				MyPreferences.setLastUsedSerialLineEnd(lineTerminator.getCombo().getSelectionIndex());
 			}
 		});
 
@@ -263,7 +291,7 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 			public void widgetSelected(SelectionEvent e) {
 				int index = lineTerminator.getCombo().getSelectionIndex();
 				GetSelectedSerial().write(sendString.getText(), SerialManager.getLineEnding(index));
-				sendString.setText(new String()); 
+				sendString.setText(new String());
 				sendString.setFocus();
 			}
 
@@ -301,44 +329,46 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 		ITheme currentTheme = themeManager.getCurrentTheme();
 		FontRegistry fontRegistry = currentTheme.getFontRegistry();
 		monitorOutput.setFont(fontRegistry.get("io.sloeber.serial.fontDefinition")); //$NON-NLS-1$
-		monitorOutput.setText(Messages.serialMonitorNoInput);
+		monitorOutput.setText(Messages.serialMonitorNoInput + newLine);
 		monitorOutput.addMouseListener(new MouseListener() {
-            
-            @Override
-            public void mouseUp(MouseEvent e) {
-             // ignore
-            }
-            
-            @Override
-            public void mouseDown(MouseEvent e) {
-                // If right button get selected text save it and start external tool
-                if (e.button==3) {
-                    String selectedText=monitorOutput.getSelectionText();
-                    if(!selectedText.isEmpty()) {
-                        IProject selectedProject = ProjectExplorerListener.getSelectedProject();
-                        if (selectedProject!=null) {
-                            
-                            try {
-                                ICConfigurationDescription activeCfg=CoreModel.getDefault().getProjectDescription(selectedProject).getActiveConfiguration();
-                                String activeConfigName= activeCfg.getName();
-                                IPath buildFolder=selectedProject.findMember(activeConfigName).getLocation();
-                                File dumpFile=buildFolder.append("serialdump.txt").toFile(); //$NON-NLS-1$
-                                FileUtils.writeStringToFile(dumpFile, selectedText, Charset.defaultCharset());
-                            } catch (Exception e1) {
-                                // ignore
-                                e1.printStackTrace();
-                            }
-                        }
-                        
-                    }
-                }
-            }
-            
-            @Override
-            public void mouseDoubleClick(MouseEvent e) {
-                // ignore
-            }
-        });
+
+			@Override
+			public void mouseUp(MouseEvent e) {
+				// ignore
+			}
+
+			@Override
+			public void mouseDown(MouseEvent e) {
+				// If right button get selected text save it and start external tool
+				if (e.button == 3) {
+					String selectedText = monitorOutput.getSelectionText();
+					if (!selectedText.isEmpty()) {
+						IProject selectedProject = ProjectExplorerListener.getSelectedProject();
+						if (selectedProject != null) {
+
+							try {
+								ICConfigurationDescription activeCfg = CoreModel.getDefault()
+										.getProjectDescription(selectedProject).getActiveConfiguration();
+								String activeConfigName = activeCfg.getName();
+								IPath buildFolder = selectedProject.findMember(activeConfigName).getLocation();
+								Path dumpFile = Path.of(buildFolder.append("serialdump.txt").toString()); //$NON-NLS-1$
+								Files.write(dumpFile, selectedText.getBytes(), StandardOpenOption.TRUNCATE_EXISTING,
+										StandardOpenOption.CREATE);
+							} catch (Exception e1) {
+								// ignore
+								e1.printStackTrace();
+							}
+						}
+
+					}
+				}
+			}
+
+			@Override
+			public void mouseDoubleClick(MouseEvent e) {
+				// ignore
+			}
+		});
 
 		parent.getShell().setDefaultButton(send);
 		makeActions();
@@ -346,9 +376,9 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	}
 
 	/**
-	 * GetSelectedSerial is a wrapper class that returns the serial port
-	 * selected in the combobox
-	 * 
+	 * GetSelectedSerial is a wrapper class that returns the serial port selected in
+	 * the combobox
+	 *
 	 * @return the serial port selected in the combobox
 	 */
 	protected Serial GetSelectedSerial() {
@@ -357,11 +387,10 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 
 	/**
 	 * Looks in the open com ports with a port with the name as provided.
-	 * 
-	 * @param comName
-	 *            the name of the comport you are looking for
-	 * @return the serial port opened in the serial monitor with the name equal
-	 *         to Comname of found. null if not found
+	 *
+	 * @param comName the name of the comport you are looking for
+	 * @return the serial port opened in the serial monitor with the name equal to
+	 *         Comname of found. null if not found
 	 */
 	private Serial GetSerial(String comName) {
 		for (Entry<Serial, SerialListener> entry : serialConnections.entrySet()) {
@@ -381,6 +410,7 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 		manager.add(clear);
 		manager.add(scrollLock);
 		manager.add(plotterFilter);
+		manager.add(showTimestamps);
 		manager.add(connect);
 		manager.add(disconnect);
 	}
@@ -393,13 +423,13 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 
 	private void makeActions() {
 		connect = new Action() {
-			@SuppressWarnings("synthetic-access")
 			@Override
 			public void run() {
 				OpenSerialDialogBox comportSelector = new OpenSerialDialogBox(parent.getShell());
 				comportSelector.create();
 				if (comportSelector.open() == Window.OK) {
-					connectSerial(comportSelector.GetComPort(), comportSelector.GetBaudRate());
+					connectSerial(comportSelector.GetComPort(), comportSelector.GetBaudRate(),
+							comportSelector.GetDtr());
 
 				}
 			}
@@ -451,6 +481,18 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 		plotterFilter.setEnabled(true);
 		plotterFilter.setChecked(MyPreferences.getLastUsedPlotterFilter());
 		SerialListener.setPlotterFilter(MyPreferences.getLastUsedPlotterFilter());
+
+		showTimestamps = new Action(Messages.serialMonitorShowTimestamps, IAction.AS_CHECK_BOX) {
+			@Override
+			public void run() {
+				timestampMode = isChecked();
+				MyPreferences.setLastUsedShowTimestamps(isChecked());
+			}
+		};
+		showTimestamps.setImageDescriptor(ImageDescriptor.createFromURL(IMG_TIMESTAMP));
+		showTimestamps.setEnabled(true);
+		showTimestamps.setChecked(MyPreferences.getLastUsedShowTimestamps());
+		timestampMode = MyPreferences.getLastUsedShowTimestamps();
 	}
 
 	/**
@@ -464,19 +506,52 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 
 	/**
 	 * The listener calls this method to report that serial data has arrived
-	 * 
-	 * @param stInfo
-	 *            The serial data that has arrived
-	 * @param style
-	 *            The style that should be used to report the data; Actually
-	 *            this is the index number of the opened port
+	 *
+	 * @param stInfo The serial data that has arrived
+	 * @param style  The style that should be used to report the data; Actually this
+	 *               is the index number of the opened port
 	 */
 	public void ReportSerialActivity(String stInfo, int style) {
+		String text = stInfo;
+
+		if (timestampMode) {
+			StringBuilder sb = new StringBuilder();
+			String ts = LocalTime.now().format(timeFormatter) + ": "; //$NON-NLS-1$
+
+			// Normalize the line endings.
+			text = text.replaceAll("\r", ""); //$NON-NLS-1$ //$NON-NLS-2$
+			int begin = 0;
+			while (true) {
+				int idx = text.indexOf("\n", begin); //$NON-NLS-1$
+				if (idx >= 0) {
+					// Note the first time through this loop lineBuffer[style] may contain
+					// an incomplete line from the previously received chunk of data.
+					String substring = text.substring(begin, idx + 1);
+					lineBuffer[style].append(substring);
+					sb.append(ts);
+					sb.append(lineBuffer[style]);
+
+					lineBuffer[style].setLength(0);
+					begin = idx + 1;
+				} else {
+					// Save any remaining data for the next time through this method.
+					lineBuffer[style].append(text.substring(begin));
+					break;
+				}
+			}
+
+			if (sb.length() < 1) {
+				return;
+			}
+
+			text = sb.toString();
+		}
+
 		int startPoint = monitorOutput.getCharCount();
-		monitorOutput.append(stInfo);
+		monitorOutput.append(text);
 		StyleRange styleRange = new StyleRange();
 		styleRange.start = startPoint;
-		styleRange.length = stInfo.length();
+		styleRange.length = text.length();
 		styleRange.fontStyle = SWT.NORMAL;
 		styleRange.foreground = colorRegistry.get(serialColorID[style]);
 		monitorOutput.setStyleRange(styleRange);
@@ -510,32 +585,47 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 		}
 	}
 
+	public void connectSerial(String comPort, int baudRate) {
+		connectSerial(comPort, baudRate, false);
+	}
+
 	/**
 	 * Connect to a serial port and sets the listener
-	 * 
-	 * @param comPort
-	 *            the name of the com port to connect to
-	 * @param baudRate
-	 *            the baud rate to connect to the com port
+	 *
+	 * @param comPort  the name of the com port to connect to
+	 * @param baudRate the baud rate to connect to the com port
 	 */
-	public void connectSerial(String comPort, int baudRate) {
+	public void connectSerial(String comPort, int baudRate, boolean dtr) {
 		if (serialConnections.size() < MY_MAX_SERIAL_PORTS) {
-			int colorindex = serialConnections.size();
-			Serial newSerial = new Serial(comPort, baudRate);
+			int colorindex = -1;
+			for (int idx = 0; idx < serialPortAllocated.length; idx++) {
+				if (!serialPortAllocated[idx]) {
+					colorindex = idx;
+					break;
+				}
+			}
+
+			if (colorindex < 0) {
+				log(new Status(IStatus.ERROR, PLUGIN_ID, Messages.serialMonitorNoMoreSerialPortsSupported, null));
+			}
+
+			Serial newSerial = new Serial(comPort, baudRate, dtr);
 			if (newSerial.IsConnected()) {
 				newSerial.registerService();
 				SerialListener theListener = new SerialListener(this, colorindex);
 				newSerial.addListener(theListener);
-				String newLine=System.getProperty("line.separator");//$NON-NLS-1$
-				theListener.event( newLine+ Messages.serialMonitorConnectedTo.replace(Messages.PORT, comPort).replace(Messages.BAUD,Integer.toString(baudRate) ) 
-						+ newLine); 
+				theListener.event(newLine + Messages.serialMonitorConnectedTo.replace(Messages.PORT, comPort)
+						.replace(Messages.BAUD, Integer.toString(baudRate)) + newLine);
 				serialConnections.put(newSerial, theListener);
 				SerialPortsUpdated();
+
+				// Only mark the serial port as allocated now everything is done with no errors.
+				serialPortAllocated[colorindex] = true;
+
 				return;
 			}
 		} else {
-			Activator.log(new Status(IStatus.ERROR, Activator.getId(), Messages.serialMonitorNoMoreSerialPortsSupported,
-					null));
+			log(new Status(IStatus.ERROR, PLUGIN_ID, Messages.serialMonitorNoMoreSerialPortsSupported, null));
 		}
 
 	}
@@ -543,17 +633,32 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	public void disConnectSerialPort(String comPort) {
 		Serial newSerial = GetSerial(comPort);
 		if (newSerial != null) {
+
 			SerialListener theListener = serialConnections.get(newSerial);
+			serialPortAllocated[theListener.getColorIndex()] = false;
 			serialConnections.remove(newSerial);
 			newSerial.removeListener(theListener);
+
+			int idx = theListener.getColorIndex();
+			serialPortAllocated[idx] = false;
+			if (lineBuffer[idx].length() > 0) {
+				// Flush any leftover data.
+				String str = lineBuffer[idx].toString();
+				str += newLine;
+				ReportSerialActivity(str, idx);
+
+				// Clear the leftover data out.
+				lineBuffer[idx].setLength(0);
+			}
+
 			newSerial.dispose();
 			theListener.dispose();
-			SerialPortsUpdated();
 		}
+		SerialPortsUpdated();
 	}
 
 	/**
-	 * 
+	 *
 	 */
 	public void ComboSerialChanged() {
 		send.setEnabled(serialPorts.toString().length() > 0);
@@ -562,13 +667,13 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	}
 
 	/**
-	 * PauzePort is called when the monitor needs to disconnect from a port for
-	 * a short while. For instance when a upload is started to a com port the
-	 * serial monitor will get a pauzeport for this com port. When the upload is
-	 * done ResumePort will be called
+	 * PauzePort is called when the monitor needs to disconnect from a port for a
+	 * short while. For instance when a upload is started to a com port the serial
+	 * monitor will get a pauzeport for this com port. When the upload is done
+	 * ResumePort will be called
 	 */
 	@Override
-	public boolean PauzePort(String portName) {
+	public boolean pausePort(String portName) {
 		Serial theSerial = GetSerial(portName);
 		if (theSerial != null) {
 			theSerial.disconnect();
@@ -581,7 +686,7 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	 * see PauzePort
 	 */
 	@Override
-	public void ResumePort(String portName) {
+	public void resumePort(String portName) {
 		Serial theSerial = GetSerial(portName);
 		if (theSerial != null) {
 			if (MyPreferences.getCleanSerialMonitorAfterUpload()) {
@@ -589,24 +694,38 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 				Display.getDefault().asyncExec(new Runnable() {
 					@Override
 					public void run() {
-						monitorOutput.setText(new String()); 
+						monitorOutput.setText(new String());
 					}
 				});
 
 			}
-			theSerial.connect(15);
+			theSerial.connect(3);
 		}
 	}
 
 	public static List<String> getMonitorContent() {
-		int numLines =monitorOutput.getContent().getLineCount();
-		List<String>ret=new ArrayList<>();
-		for(int curLine=1;curLine<numLines;curLine++) {
-			ret.add(monitorOutput.getContent().getLine(curLine-1));
+		int numLines = monitorOutput.getContent().getLineCount();
+		List<String> ret = new ArrayList<>();
+		for (int curLine = 1; curLine < numLines; curLine++) {
+			ret.add(monitorOutput.getContent().getLine(curLine - 1));
 		}
 		return ret;
 	}
+
 	public static void clearMonitor() {
 		monitorOutput.setText(new String());
+	}
+
+	@Override
+	public boolean stopPort(String mComPort) {
+		// run this in the gui thread
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				disConnectSerialPort(mComPort);
+			}
+		});
+
+		return true;
 	}
 }

@@ -1,5 +1,7 @@
 package io.sloeber.ui.monitor.internal;
 
+import static io.sloeber.ui.Activator.*;
+
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -9,11 +11,12 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.swt.widgets.Display;
 
+import io.sloeber.core.api.Const;
 import io.sloeber.core.api.MessageConsumer;
-import io.sloeber.ui.Activator;
 import io.sloeber.ui.Messages;
 import io.sloeber.ui.monitor.views.SerialMonitor;
-@SuppressWarnings({"unused"})
+
+@SuppressWarnings({ "unused" })
 public class SerialListener implements MessageConsumer {
 	private static boolean myPlotterFilterFlag = false;
 	SerialMonitor theMonitor;
@@ -32,7 +35,7 @@ public class SerialListener implements MessageConsumer {
 		event(internalMessage(newData));
 	}
 
-	 public String internalMessage(byte[] newData) {
+	public String internalMessage(byte[] newData) {
 		String ret = new String();
 		if (myPlotterFilterFlag) {
 			// filter plotter data
@@ -40,8 +43,7 @@ public class SerialListener implements MessageConsumer {
 				this.myReceivedSerialData.put(newData);
 			} catch (BufferOverflowException e) {
 				this.myReceivedSerialData.clear();
-				Activator.log(
-						new Status(IStatus.WARNING, Activator.getId(), Messages.serialListenerPlotterSkippingData));
+				log(new Status(IStatus.WARNING, PLUGIN_ID, Messages.serialListenerPlotterSkippingData));
 				return ret;
 			}
 
@@ -67,24 +69,23 @@ public class SerialListener implements MessageConsumer {
 		String inMessage = StandardCharsets.US_ASCII.decode(this.myReceivedSerialData).toString();
 		this.myReceivedSerialData.position(pos);
 
-
 		boolean found = false;
 		int lastFound = this.myReceivedSerialData.position();
 		// Scan for plotter data
 		for (int curByte = this.myReceivedSerialData.position(); curByte < this.myReceivedSerialData.limit()
 				- 1; curByte++) {
-			if (this.myReceivedSerialData.getShort(curByte) == Activator.PLOTTER_START_DATA) {
+			if (this.myReceivedSerialData.getShort(curByte) == Const.PLOTTER_START_DATA) {
 				// we have a hit.
 				found = true;
 				if ((lastFound != curByte) && (curByte > lastFound)) {
-					outMessage += inMessage.substring(lastFound, curByte );
+					outMessage += inMessage.substring(lastFound, curByte);
 				}
 				this.myReceivedSerialData.position(curByte);
 				if (this.myReceivedSerialData.remaining() > 4) {
 					int bytestoRead = this.myReceivedSerialData.getShort(curByte + 2);
 					if ((bytestoRead < 0) || (bytestoRead > 10 * 2)) {
-						Activator.log(
-								new Status(IStatus.WARNING, Activator.getId(), Messages.serial_listener_error.replace(Messages.NUMBER,Integer.toString( bytestoRead / 2))));
+						log(new Status(IStatus.WARNING, PLUGIN_ID, Messages.serial_listener_error
+								.replace(Messages.NUMBER, Integer.toString(bytestoRead / 2))));
 					} else {
 						if (bytestoRead + 4 <= this.myReceivedSerialData.remaining()) {
 							int numChannels = bytestoRead / 2;
@@ -103,7 +104,7 @@ public class SerialListener implements MessageConsumer {
 			}
 		}
 		if ((!found) && (this.myReceivedSerialData.limit() > 1) && (this.myReceivedSerialData
-				.get(this.myReceivedSerialData.limit() - 1) != (Activator.PLOTTER_START_DATA >> 8))) {
+				.get(this.myReceivedSerialData.limit() - 1) != (Const.PLOTTER_START_DATA >> 8))) {
 			this.myReceivedSerialData.position(this.myReceivedSerialData.limit());
 			outMessage = inMessage;
 		}
@@ -113,8 +114,10 @@ public class SerialListener implements MessageConsumer {
 
 	@Override
 	public void dispose() {
-		this.isDisposed = true;
-		this.myReceivedSerialData.clear();
+		if (!isDisposed) {
+			isDisposed = true;
+			myReceivedSerialData.clear();
+		}
 	}
 
 	public class TxtUpdater implements Runnable {
@@ -130,6 +133,7 @@ public class SerialListener implements MessageConsumer {
 				}
 			}
 		}
+
 		private synchronized void synchronizedrun() {
 			try {
 				if (!SerialListener.this.isDisposed) {
@@ -142,22 +146,26 @@ public class SerialListener implements MessageConsumer {
 			}
 			this.running = false;
 		}
+
 		@Override
 		public void run() {
 			synchronizedrun();
 		}
-	};
+	}
 
 	TxtUpdater textUpdater = new TxtUpdater();
 
 	@Override
 	public void event(String event) {
 		this.textUpdater.addData(event);
-
 	}
 
 	public static void setPlotterFilter(boolean selection) {
 		myPlotterFilterFlag = selection;
-
 	}
+
+	public int getColorIndex() {
+		return theColorIndex;
+	}
+
 }

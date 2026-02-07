@@ -1,41 +1,44 @@
-#this file is processed without the adding of A to enable referencing non arduino set variables
-A.software=ARDUINO
-A.RECIPE.OBJCOPY.HEX.PATTERN={A.RECIPE.OBJCOPY.BIN.PATTERN}
-A.ARCHIVE_FILE=arduino.ar
-A.ARCHIVE_FILE_PATH={A.BUILD.PATH}/{A.ARCHIVE_FILE}
-A.ALT_SIZE_COMMAND="{A.COMPILER.PATH}{A.COMPILER.SIZE.CMD}" --format=avr --mcu={A.BUILD.MCU} "{A.BUILD.PATH}/{A.BUILD.PROJECT_NAME}.elf"
-A.archive_file_path={A.BUILD.PATH}/{A.ARCHIVE_FILE}
-A.runtime.IDE.version=10812
-A.BUILD.SYSTEM.PATH={A.REFERENCED.CORE.PATH}{DirectoryDelimiter}system
-A.SERIAL.PORT={JANTJE.COM_PORT}
-A.BUILD.PROJECT_NAME={ProjName}
-A.PACKAGES={eclipse_home}{DirectoryDelimiter}arduinoPlugin{DirectoryDelimiter}packages
-A.BUILD.SOURCE.PATH={ProjDirPath}
+#this file contains default/fallback/rescue values
+software=ARDUINO
+archive_file=arduino.ar
+archive_file_path=${build.path}${PathDelimiter}${archive_file}
+ide_version=20302
+
+serial.port=${com_port}
+build.project_name=${ProjName}
+
+#size stuff
+sloeber.size_command.avr="${compiler.path}${compiler.size.cmd}" --format=avr --mcu=${build.mcu} "${build.path}/${build.project_name}.elf"
+sloeber.size_command.awk=${recipe.size.pattern} | "${sloeber.awk.path}awk" -f size.awk
+
+
+#make sure we have default compiling warning commands
+compiler.warning_flags.none=-w
+compiler.warning_flags.more=-Wall
+compiler.warning_flags.all=-Wall -Wextra
+compiler.warning_flags=-w
 
 
 #quick fix for issue #810
-A.UPLOAD.SPEED=19200
-A.UPLOAD.PROTOCOL=stk500v1
+upload.speed=19200
+upload.protocol=stk500v1
 
 
 #for esp8266 network upload
-A.tools.esp8266OTA={A.TOOLS.ESPTOOL.NETWORK_CMD}
-A.tools.esp8266OTA.upload.pattern={A.TOOLS.ESPTOOL.UPLOAD.NETWORK_PATTERN}
-A.esp8266.network.upload.tool=esp8266OTA
-A.TOOLS.ESPTOOL.NETWORK.PASSWORD={A.NETWORK.AUTH}
+tools.esp8266OTA=${tools.esptool.network_cmd}
+tools.esp8266OTA.upload.pattern=${tools.esptool.upload.network_pattern}
+esp8266.network.upload.tool=esp8266OTA
+tools.esptool.network.PASSWORD=${network.auth}
 
 #for yun shield to work
-A.TOOLS.AVRDUDE_REMOTE.UPLOAD.VERBOSE=-v
+tools.avrdude_remote.upload.verbose=-v
 
 #for due
-A.SERIAL.PORT.FILE={A.SERIAL.PORT}
-
-#to turn warnings on/off
-A.COMPILER.WARNING_FLAGS=-w
-A.COMPILER.WARNING_FLAGS.ALL=-Wall -Wextra
+serial.port.file=${serial.port}
 
 #for stm
+upload.altID=no_altID
+upload.usbID=no_altID
 
-A.UPLOAD.ALTID=no_altID
-A.UPLOAD.USBID=no_altID
-
+#workaround and default value for issue #1625
+compiler.optimization_flags=${compiler.optimization_flags.release}

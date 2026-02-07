@@ -8,28 +8,25 @@ The Sloeber IDE bridges that gap and helps move you to a more powerful developme
 
 It works on MS Windows, Mac OSX and Linux.
 
-# Support us
-We need your support to continue developing this software. This is the truth.
-
-If you use this software professionally then we request your help. [Send some of the cash you make our way](http://eclipse.baeyens.it/donate.shtml).
-
-If you use this software as a hobbiest [then how about $5 monthly?  :kissing_heart:](http://eclipse.baeyens.it/donate.shtml) 
-
 # Downloads
-If you are not a developer and don't want to build from sources, then there are precompiled product packages and update sites available. See the details at http://sloeber.io/.
+If you are not a developer and don't want to build from sources, then there are precompiled product packages and update sites available. You can find them here on github as releases. See the details at http://baeyens.it/.
 
 # Build from source
 Below are instructions on how to download and compile the source code from the command line and from eclipse.
 You only need to do one.
 
-Contributors (people that help us build Sloeber) may join [our Slack Channel](https://sloeber.slack.com/).
 
 ## Prerequisites
-Please install [git] (http://git-scm.com/downloads) and [maven] (http://maven.apache.org/download.cgi).
+Please install [git](http://git-scm.com/downloads) and [maven](http://maven.apache.org/download.cgi).
+
+Java 17 is required.
+
+A 64-bit OS is required.
+
 
 ## Build from the command line from source for your os and the default eclipse instance
 ```bash
-git clone https://github.com/jantje/arduino-eclipse-plugin sloeber
+git clone https://github.com/Sloeber/arduino-eclipse-plugin sloeber
 cd sloeber
 mvn clean verify -DskipTests=true
 ```
@@ -39,7 +36,6 @@ mvn clean verify -DskipTests=true
 Windows
 
  * win32x64.cmd (if you are on 64 bits windows)
- * win32x32.cmd (if you are on 32 bits windows)
 
 Mac OSX and Linux
 
@@ -51,22 +47,27 @@ Mac OSX and Linux
 You can control the maven build with the following profiles:
 
 * latest (default, builds against the latest versions)
-* 2018-09 (builds against the 2018-09 release. Eclipse stopped naming their releases)
 * SDK (builds a Sloeber you can program Sloeber in. With Java.)
-* win32 (builds for 32 bit windows)
 * win64
 * linux64
 * mac64
+* macm1
 
 ### Examples
-    mvn clean verify -Plinux32,latest -DskipTests=true (builds for neon and linux 32 bits)
-    mvn clean verify -PSDK,latest -DskipTests=true (builds the Sloeber SDK. For Sloeber programmers.)
-    mvn clean verify -P2018-09,linux64 -DskipTests=true (builds against 2018-09 and produces linux64 product) 
+
+* Build the latest version for the platform you are running on:
+
+    `mvn clean verify -PNOSDK -DskipTests=true`
+
+* Build Eclipse + Sloeber for 64-bit Windows:
+    `mvn clean verify -Pwin64,latest,NOSDK -DskipTests=true`
+		
+* Build Eclipse + Sloeber for 64-bit Linux:
+    `mvn clean verify -Plinux64,latest,NOSDK -DskipTests=true`
+		
+* Build the Sloeber SDK for 64-bit Windows (for Sloeber programmers):
+    `mvn clean verify -PSDK,win64,latest -DskipTests=true`
     
-To build for latest and the platform you are running on:
-
-    mvn clean verify -DskipTests=true
-
 # Importing your build into another Eclipse
 If you want to import the latest code based plugin to another Eclipse setup you have then it is possible to setup a local repository to install the plugin you have just built. Just add a local repository with location ```arduino-eclipse-plugin/io.sloeber.product/target/repository```
 
@@ -77,12 +78,21 @@ If you want to import the latest code based plugin to another Eclipse setup you 
  * Checkout locally
  * Run ```mvn clean verify -PSDK,latest -DskipTests=true``` to build
 
-After the build, find the Sloeber SDK product in the io.sloeber.product.sdk target directory. Unzip it somewhere in your home directory (mind you we cannot handle very long path names)
+After the build, find the Sloeber SDK product in the io.sloeber.product.sdk target directory. Unzip it somewhere in your home directory (mind you we cannot handle very long path names on windows)
 
     Note that Sloeber itself is NOT included in the Sloeber SDK. 
 
+## Install the maven PDE integration in your eclipse install.
+In the menu select help->install new software
+in the field work with enter: http://download.eclipse.org/releases/latest
+in the field below enter m2e
+select m2e - pde integration
+select next and finish the install
+
+
 
 ## Install the projects into the SDK via the EGit interface.
+
 
 > File → Import → Git → Projects from Git → Existing local repository
 
@@ -98,6 +108,11 @@ After the build, find the Sloeber SDK product in the io.sloeber.product.sdk targ
 After all it should look like this:
 
 ![alt text](images_plugin_dev_setup/Imported_projects.png "Projects imported")
+
+## set the target platform
+in the menu select windows->preferences
+select plugindevelopment->target platform
+select Sloeber as target platform
 
 ## Set the Warning Level
 

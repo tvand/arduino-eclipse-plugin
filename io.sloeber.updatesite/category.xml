@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
-   <feature url="features/io.sloeber.feature_4.3.3.qualifier.jar" id="io.sloeber.feature" version="4.3.3.qualifier">
+   <feature id="io.sloeber.feature">
       <category name="Sloeber"/>
    </feature>
-   <bundle id="io.sloeber.product" version="4.3.3.qualifier">
+   <bundle id="io.sloeber.product">
       <category name="product_ide"/>
+   </bundle>
+   <bundle id="io.sloeber.autoBuild">
+      <category name="autoBuild"/>
+   </bundle>
+   <bundle id="io.sloeber.autoBuild.ui">
+      <category name="autoBuild"/>
    </bundle>
    <category-def name="Sloeber" label="Sloeber Arduino IDE">
       <description>
@@ -16,9 +22,8 @@
          Only select this if you are upgrading the Sloeber IDE
       </description>
    </category-def>
-   <repository-reference location="http://download.eclipse.org/releases/latest/" enabled="true" />
-   <repository-reference location="http://download.eclipse.org/nebula/releases/latest/" enabled="true" />
-   <repository-reference location="http://gnu-mcu-eclipse.netlify.com/v4-neon-updates/" enabled="true" />
-   <repository-reference location="http://https://download.eclipse.org/technology/babel/update-site/R0.17.1/2019-12/" enabled="true" />
-   <repository-reference location="http://download.eclipse.org/tools/cdt/releases/9.10" enabled="true" />
+   <category-def name="autoBuild" label="autoBuild"/>
+   <repository-reference location="https://download.eclipse.org/releases/latest/" name="" enabled="true" />
+   <repository-reference location="https://download.eclipse.org/eclipse/updates/latest" name="" enabled="true" />
+   <repository-reference location="https://download.eclipse.org/nebula/releases/latest/" name="" enabled="true" />
 </site>

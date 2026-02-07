@@ -1,61 +1,77 @@
 package io.sloeber.core.toolchain;
 
-import org.eclipse.cdt.core.CCorePlugin;
-import org.eclipse.cdt.core.envvar.IEnvironmentVariableManager;
-import org.eclipse.cdt.core.model.CoreModel;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
+import org.eclipse.cdt.core.language.settings.providers.ILanguageSettingsProvider;
+import org.eclipse.cdt.core.language.settings.providers.LanguageSettingsStorage;
+import org.eclipse.cdt.core.settings.model.CIncludePathEntry;
 import org.eclipse.cdt.core.settings.model.ICConfigurationDescription;
-import org.eclipse.cdt.core.settings.model.ICProjectDescription;
-import org.eclipse.cdt.managedbuilder.core.ManagedBuilderCorePlugin;
-import org.eclipse.cdt.managedbuilder.language.settings.providers.GCCBuiltinSpecsDetector;
+import org.eclipse.cdt.core.settings.model.ICLanguageSettingEntry;
+import org.eclipse.cdt.core.settings.model.ICSettingEntry;
+import org.eclipse.cdt.core.settings.model.ICSourceEntry;
+import org.eclipse.cdt.core.settings.model.util.CDataUtil;
+import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.resources.IResource;
 
-import io.sloeber.core.api.CompileOptions;
-import io.sloeber.core.common.Common;
-import io.sloeber.core.common.Const;
+import io.sloeber.autoBuild.api.IAutoBuildConfigurationDescription;
+import io.sloeber.core.api.ISloeberConfiguration;
 
-@SuppressWarnings({"nls","unused"})
-public class ArduinoLanguageProvider extends GCCBuiltinSpecsDetector{
+public class ArduinoLanguageProvider implements ILanguageSettingsProvider {
 
-	
+    @Override
+    public String getId() {
+        return "io.sloeber.languageSettingsProvider"; //$NON-NLS-1$
+    }
 
-	@Override
-	protected String getCompilerCommand(String languageId) {
-		String compilerCommand = new String();
+    @Override
+    public String getName() {
+        return "Sloeber language Settings provider"; //$NON-NLS-1$
+    }
 
-		ICProjectDescription prjDesc = CoreModel.getDefault().getProjectDescription(currentProject);
-		if (prjDesc == null)
-			return compilerCommand;
+    @Override
+    public List<ICLanguageSettingEntry> getSettingEntries(ICConfigurationDescription cfgDescription, IResource rc,
+            String languageId) {
+        if (languageId == null || languageId.isBlank()) {
+            return null;
+        }
+        List<ICLanguageSettingEntry> ret = new LinkedList<>();
+        IAutoBuildConfigurationDescription autoBuildConfData=IAutoBuildConfigurationDescription.getConfig(cfgDescription);
+        if(autoBuildConfData==null) {
+        	return null;
+        }
+        ISloeberConfiguration autoConfDesc= ISloeberConfiguration.getConfig(autoBuildConfData);
+        if(autoConfDesc==null) {
+        	return null;
+        }
+        ICSourceEntry[] mySrcEntries = IAutoBuildConfigurationDescription.getResolvedSourceEntries(autoBuildConfData);
+        Set<IFolder> includeFolders = autoConfDesc.getIncludeFolders();
+        int flags = ICSettingEntry.READONLY | ICSettingEntry.VALUE_WORKSPACE_PATH | ICSettingEntry.RESOLVED;
+        for(IFolder curFolder:includeFolders) {
+            boolean isExcluded = mySrcEntries == null ? false
+                    : CDataUtil.isExcluded(curFolder.getProjectRelativePath(), mySrcEntries);
+            if (isExcluded) {
+                 continue;
+            }
+        	ret.add(CDataUtil.getPooledEntry(new CIncludePathEntry(curFolder, flags)));
+        }
+        return LanguageSettingsStorage.getPooledList(ret);
+    }
 
-		IEnvironmentVariableManager envManager = CCorePlugin.getDefault().getBuildEnvironmentManager();
-		ICConfigurationDescription confDesc = prjDesc.getActiveConfiguration();
-
-		String recipeKey = new String();
-		String extraOptions = new String();
-		CompileOptions compileOptions = new CompileOptions(confDesc);
-		if (languageId.equals("org.eclipse.cdt.core.gcc")) {
-			recipeKey = Common.get_ENV_KEY_RECIPE(Const.ACTION_C_to_O);
-			extraOptions = compileOptions.get_C_CompileOptions();
-		} else if (languageId.equals("org.eclipse.cdt.core.g++")) {
-			recipeKey = Common.get_ENV_KEY_RECIPE(Const.ACTION_CPP_to_O);
-			extraOptions = compileOptions.get_CPP_CompileOptions();
-		} else {
-			ManagedBuilderCorePlugin.error(
-					"Unable to find compiler command for language " + languageId + " in toolchain=" + getToolchainId());
-		}
-		extraOptions = extraOptions + " " + compileOptions.get_C_andCPP_CompileOptions() + " "
-				+ compileOptions.get_All_CompileOptions();
-		try {
-			compilerCommand = envManager.getVariable(recipeKey + Const.DOT + "1", confDesc, false).getValue();
-			compilerCommand = compilerCommand
-					+ envManager.getVariable(recipeKey + Const.DOT + "2", confDesc, false).getValue();
-			compilerCommand = compilerCommand
-					+ envManager.getVariable(recipeKey + Const.DOT + "3", confDesc, false).getValue();
-		} catch (Exception e) {
-			compilerCommand = new String();
-		}
-
-		compilerCommand = compilerCommand + ' ' + extraOptions;
-
-		return compilerCommand.replaceAll(" -o ", " ");
-	}
+    //    @Override
+    //    protected String getCompilerCommand(String languageId) {
+    //
+    //        if (languageId.equals("org.eclipse.cdt.core.gcc")) {
+    //            return "${" + CODAN_C_to_O + "}";
+    //        } else if (languageId.equals("org.eclipse.cdt.core.g++")) {
+    //            return "${" + CODAN_CPP_to_O + "}";
+    //        } else {
+    //            ManagedBuilderCorePlugin.error(
+    //                    "Unable to find compiler command for language " + languageId + " in toolchain=" + getToolchainId());
+    //        }
+    //
+    //        return null;
+    //    }
 
 }

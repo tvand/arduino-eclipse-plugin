@@ -15,12 +15,13 @@ public class Messages extends NLS {
     public static final String EMAIL = "{EMAIL}"; //$NON-NLS-1$
     public static final String URL = "{URL}"; //$NON-NLS-1$
 
-    
-    
+	public static String ui_select_debug_level;
+
+	public static String Build_Error_Before_Upload;
     public static String Invalid_Private_Hardware_folder;
     public static String Invalid_Private_Library_folder;
-    
-    
+
+
     public static String always;
     public static String arduino_upload_project_handler_build_failed;
     public static String arduino_upload_project_handler_build_failed_so_no_upload;
@@ -40,8 +41,7 @@ public class Messages extends NLS {
 
     public static String buildHandler_build_code_of_project;
     public static String build_before_upload;
-    public static String decorator_no_platform;
-    public static String decorator_no_port;
+
     public static String do_you_want_to_build_before_upload;
     public static String error_adding_arduino_code;
     public static String error_failed_to_import_library_in_project;
@@ -66,7 +66,29 @@ public class Messages extends NLS {
     public static String packageTooltip;
 
     public static String PlatformSelectionPage_hide_third_party_url;
-    public static String platformSelectionTip;
+    public static String PreferencePage_centuries;
+
+	public static String PreferencePage_days;
+
+	public static String PreferencePage_Internal_Behaviour_Group_Title;
+
+	public static String PreferencePage_json_Download_date;
+
+	public static String PreferencePage_months;
+
+	public static String PreferencePage_Network_Group_Title;
+
+	public static String PreferencePage_UI_Behaviour_Group_Title;
+
+	public static String PreferencePage_Update_json_files_now;
+
+	public static String PreferencePage_update_interval;
+
+	public static String PreferencePage_weeks;
+
+	public static String PreferencePage_years;
+
+	public static String platformSelectionTip;
     public static String pleaseWaitForInstallerJob;
     public static String plotterViewChannel;
     public static String plotterViewConnectedTo;
@@ -86,6 +108,7 @@ public class Messages extends NLS {
     public static String serialMonitorRemoveSerialPortFromMonitor;
     public static String serialMonitorReset;
     public static String serialMonitorScrollLock;
+    public static String serialMonitorShowTimestamps;
     public static String serialMonitorSend;
     public static String serial_listener_error;
     public static String set_or_remove_password;
@@ -111,6 +134,7 @@ public class Messages extends NLS {
     public static String ui_auto_install_libraries;
     public static String ui_build_before_upload;
     public static String ui_clean_serial_monitor_after_upload;
+    public static String ui_switch_to_serial_monitor_after_upload;
     public static String ui_enable_parallel_build_for_new_projects;
     public static String ui_error_select_arduino_project;
     public static String ui_import_arduino_libraries_in_project;
@@ -125,6 +149,7 @@ public class Messages extends NLS {
     public static String ui_new_sketch_arduino_information_help;
     public static String ui_new_sketch_custom_template;
     public static String ui_new_sketch_custom_template_location;
+    public static String ui_new_sketch_none;
     public static String ui_new_sketch_default_cpp;
     public static String ui_new_sketch_default_ino;
     public static String ui_new_sketch_error_failed_to_create_project;
@@ -157,8 +182,24 @@ public class Messages extends NLS {
     public static String ui_use_arduino_toolchain_selection;
     public static String ui_workspace_settings;
     public static String ui_enable_bonjour;
+	public static String ui_put_in_version_control;
+	public static String target_maintain;
+	public static String Add_Targets_To_force_serial_disconnect_when_run;
+	public static String NewProjectSourceLocationPage_CodeInCustomFolder;
+
+	public static String NewProjectSourceLocationPage_CodeInRootFolder;
+
+	public static String NewProjectSourceLocationPage_CodeInSrcFolder;
+
+	public static String NewProjectSourceLocationPage_CustomSourceTextFieldError;
+
+	public static String NewProjectSourceLocationPage_ExplainText;
+
+	public static String ui_new_sketch_sketch_source_folder;
 
     public static String yes;
+
+
     static {
         // initialize resource bundle
         NLS.initializeMessages(BUNDLE_NAME, Messages.class);

@@ -1,5 +1,7 @@
 package io.sloeber.core.common;
 
+import static io.sloeber.core.api.Const.*;
+
 import java.io.File;
 
 import org.eclipse.core.runtime.IStatus;
@@ -26,8 +28,7 @@ public class InstancePreferences {
 	private static final String KEY_PRAGMA_ONCE_HEADER = "add pragma once to headers"; //$NON-NLS-1$
 	private static final String KEY_USE_ARDUINO_TOOLS_SELECTION_ALGORITHM="Use the algoritm to find the toolchain like Arduino IDE"; //$NON-NLS-1$
 	private static final String KEY_USE_BONJOUR="use bonjour service to find devices"; //$NON-NLS-1$
-	// preference nodes
-	public static final String NODE_ARDUINO = Activator.NODE_ARDUINO;
+	private static final String KEY_INSTALL_LIBRARIES= "download and install libraries on usage"; //$NON-NLS-1$
 
 	/**
 	 * Give back the user option if the libraries need to be added or not
@@ -60,9 +61,8 @@ public class InstancePreferences {
 		try {
 			myScope.flush();
 		} catch (BackingStoreException e) {
-			Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID,
-					"failed to set global variable of type string " + key)); //$NON-NLS-1$
-			e.printStackTrace();
+            Activator.log(new Status(IStatus.WARNING, CORE_PLUGIN_ID,
+					"failed to set global variable of type string " + key,e)); //$NON-NLS-1$
 		}
 	}
 
@@ -74,9 +74,8 @@ public class InstancePreferences {
 		try {
 			myScope.flush();
 		} catch (BackingStoreException e) {
-			Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID,
-					"failed to set global variable of type boolean " + key)); //$NON-NLS-1$
-			e.printStackTrace();
+            Activator.log(new Status(IStatus.WARNING, CORE_PLUGIN_ID,
+					"failed to set global variable of type boolean " + key,e)); //$NON-NLS-1$
 		}
 	}
 
@@ -124,12 +123,12 @@ public class InstancePreferences {
 	/**
 	 * Setting to see wether user wants bonjour service to be run on
 	 * its's system.
-	 * Bonjour is a mac protocol that allows you to do network discovery 
+	 * Bonjour is a mac protocol that allows you to do network discovery
 	 * for yun, esp8266 and some other boards
 	 * If not enabled you will need another way to identify the boards
 	 * Note that this service doesn't work properly on window 10
 	 * default is enabled
-	 * 
+	 *
 	 * @return true if network search for bonjour is requested by the user
 	 */
 	public static boolean useBonjour() {
@@ -142,5 +141,13 @@ public class InstancePreferences {
 	 */
 	public static void setUseBonjour(boolean newFlag) {
 		setValue(KEY_USE_BONJOUR, newFlag);
+	}
+
+	public static void setInstallLibraries(boolean selection) {
+		setValue(KEY_INSTALL_LIBRARIES, selection);
+	}
+
+	public static boolean getInstallLibraries() {
+		return getBoolean(KEY_INSTALL_LIBRARIES, Defaults.INSTALL_LIBRARIES);
 	}
 }

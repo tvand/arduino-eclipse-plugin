@@ -1,10 +1,7 @@
 package io.sloeber.ui.wizard.newsketch;
 
 import java.io.File;
-import java.util.ArrayList;
-
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
+import java.util.Set;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
@@ -17,47 +14,32 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
-import org.eclipse.swt.widgets.Shell;
 
-import io.sloeber.core.api.BoardDescriptor;
-import io.sloeber.core.api.CodeDescriptor;
-import io.sloeber.core.api.CodeDescriptor.CodeTypes;
+import io.sloeber.arduinoFramework.api.BoardDescription;
+import io.sloeber.arduinoFramework.api.IExample;
+import io.sloeber.core.api.CodeDescription;
+import io.sloeber.core.api.CodeDescription.CodeTypes;
 import io.sloeber.ui.LabelCombo;
 import io.sloeber.ui.Messages;
 
 public class NewSketchWizardCodeSelectionPage extends WizardPage {
 
-	final Shell shell = new Shell();
+//	final Shell shell = new Shell();
 	private Composite myParentComposite = null;
-	protected LabelCombo myCodeSourceOptionsCombo; 
+	protected LabelCombo myCodeSourceOptionsCombo;
 	protected DirectoryFieldEditor myTemplateFolderEditor;
 	protected SampleSelector myExampleEditor = null;
 	protected Button myCheckBoxUseCurrentLinkSample;
-	private BoardDescriptor myBoardDescriptor = null;
-	private CodeDescriptor myCodedescriptor = CodeDescriptor.createLastUsed();
+	private BoardDescription myCurrentBoardDesc = null;
+	private CodeDescription myCodedescriptor = null;
+	private NewSketchWizardBoardPage myArduinoPage;
 
-	public void setBoardDescriptor(BoardDescriptor boardDescriptor) {
-		if (myBoardDescriptor == null) {
-			myBoardDescriptor = boardDescriptor;
-			boardDescriptor.addChangeListener(new ChangeListener() {
-
-				@Override
-				public void stateChanged(ChangeEvent e) {
-					handleBoarDescriptorChange();
-				}
-			});
-		}
-		handleBoarDescriptorChange();
-	}
-
-	public void handleBoarDescriptorChange() {
-
-		if (myExampleEditor != null) {
-			myExampleEditor.AddAllExamples(myBoardDescriptor, myCodedescriptor.getExamples());
-		}
-
+	@Override
+	public void setVisible(boolean visible) {
+		super.setVisible(visible);
 		validatePage();
 	}
+
 
 	public NewSketchWizardCodeSelectionPage(String pageName) {
 		super(pageName);
@@ -88,7 +70,7 @@ public class NewSketchWizardCodeSelectionPage extends WizardPage {
 
 			}
 		};
-		myCodeSourceOptionsCombo = new LabelCombo(composite, Messages.ui_new_sketch_selecy_code, null, 4, true);
+		myCodeSourceOptionsCombo = new LabelCombo(composite, Messages.ui_new_sketch_selecy_code, 4, true);
 		myCodeSourceOptionsCombo.addListener(comboListener);
 
 		myCodeSourceOptionsCombo.setItems(getCodeTypeDescriptions());
@@ -120,18 +102,21 @@ public class NewSketchWizardCodeSelectionPage extends WizardPage {
 		SetControls();// set the controls according to the setting
 
 		validatePage();// validate the page
-		handleBoarDescriptorChange();
-
 		setControl(composite);
 
 	}
 
 	/**
-	 * @name SetControls() Enables or disables the controls based on the
-	 *       Checkbox settings
+	 * @name SetControls() Enables or disables the controls based on the Checkbox
+	 *       settings
 	 */
 	protected void SetControls() {
-		switch (CodeTypes.values()[Math.max(0, myCodeSourceOptionsCombo.getSelectionIndex())]) {
+		switch (getCodeType()) {
+		case None:
+			myTemplateFolderEditor.setEnabled(false, myParentComposite);
+			myExampleEditor.setEnabled(false);
+			myCheckBoxUseCurrentLinkSample.setEnabled(false);
+			break;
 		case defaultIno:
 			myTemplateFolderEditor.setEnabled(false, myParentComposite);
 			myExampleEditor.setEnabled(false);
@@ -158,27 +143,33 @@ public class NewSketchWizardCodeSelectionPage extends WizardPage {
 	}
 
 	/**
-	 * @name validatePage() Check if the user has provided all the info to
-	 *       create the project. If so enable the finish button.
+	 * @name validatePage() Check if the user has provided all the info to create
+	 *       the project. If so enable the finish button.
 	 */
 	protected void validatePage() {
-		if (myCodeSourceOptionsCombo == null) {
-			return;
-		}
-		switch (CodeTypes.values()[Math.max(0, myCodeSourceOptionsCombo.getSelectionIndex())]) {
+
+		switch (getCodeType()) {
+		case None:
 		case defaultIno:
 		case defaultCPP:
-			setPageComplete(true);// default always works
+			setPageComplete(true);// default and no file always works
 			break;
 		case CustomTemplate:
 			IPath templateFolder = new Path(myTemplateFolderEditor.getStringValue());
-			File cppFile = templateFolder.append(CodeDescriptor.DEFAULT_SKETCH_CPP).toFile();
-			File headerFile = templateFolder.append(CodeDescriptor.DEFAULT_SKETCH_H).toFile();
-			File inoFile = templateFolder.append(CodeDescriptor.DEFAULT_SKETCH_INO).toFile();
+			File cppFile = templateFolder.append(CodeDescription.DEFAULT_SKETCH_CPP).toFile();
+			File headerFile = templateFolder.append(CodeDescription.DEFAULT_SKETCH_H).toFile();
+			File inoFile = templateFolder.append(CodeDescription.DEFAULT_SKETCH_INO).toFile();
 			boolean existFile = inoFile.isFile() || (cppFile.isFile() && headerFile.isFile());
 			setPageComplete(existFile);
 			break;
 		case sample:
+			BoardDescription mySelectedBoardDesc = myArduinoPage.getBoardDescriptor();
+			if (!mySelectedBoardDesc.equals(myCurrentBoardDesc)) {
+				myCurrentBoardDesc = new BoardDescription(mySelectedBoardDesc);
+				myCodedescriptor=null;
+				myExampleEditor.AddAllExamples(myCurrentBoardDesc, getCodeDescr().getExamples());
+
+			}
 			setPageComplete(myExampleEditor.isSampleSelected());
 			break;
 		default:
@@ -198,23 +189,27 @@ public class NewSketchWizardCodeSelectionPage extends WizardPage {
 		// settings are saved when the files are created and the use this as
 		// default flag is set
 		//
-		myTemplateFolderEditor.setStringValue(myCodedescriptor.getTemPlateFoldername().toString());
-		myCodeSourceOptionsCombo.select(myCodedescriptor.getCodeType().ordinal());
+		myTemplateFolderEditor.setStringValue(getCodeDescr().getTemPlateFoldername().toString());
+		myCodeSourceOptionsCombo.select(getCodeDescr().getCodeType().ordinal());
 	}
 
-	public CodeDescriptor getCodeDescription() {
+	public CodeDescription getCodeDescription() {
 
-		switch (CodeTypes.values()[myCodeSourceOptionsCombo.getSelectionIndex()]) {
+		switch (getCodeType()) {
+		case None:
+			return CodeDescription.createNone();
 		case defaultIno:
-			return CodeDescriptor.createDefaultIno();
+			return CodeDescription.createDefaultIno();
 		case defaultCPP:
-			return CodeDescriptor.createDefaultCPP();
+			return CodeDescription.createDefaultCPP();
 		case CustomTemplate:
-			return CodeDescriptor.createCustomTemplate(new Path(myTemplateFolderEditor.getStringValue()));
+			return CodeDescription.createCustomTemplate(new Path(myTemplateFolderEditor.getStringValue()));
 		case sample:
-			ArrayList<IPath> sampleFolders = myExampleEditor.GetSampleFolders();
+			Set<IExample> sampleFolders = myExampleEditor.GetSampleFolders();
 			boolean link = myCheckBoxUseCurrentLinkSample.getSelection();
-			return CodeDescriptor.createExample(link, sampleFolders);
+			return CodeDescription.createExample(link, sampleFolders);
+		default:
+			break;
 		}
 		// make sure this never happens
 		return null;
@@ -222,6 +217,8 @@ public class NewSketchWizardCodeSelectionPage extends WizardPage {
 
 	public static String getCodeTypeDescription(CodeTypes codeType) {
 		switch (codeType) {
+		case None:
+			return Messages.ui_new_sketch_none;
 		case defaultIno:
 			return Messages.ui_new_sketch_default_ino;
 		case defaultCPP:
@@ -230,6 +227,8 @@ public class NewSketchWizardCodeSelectionPage extends WizardPage {
 			return Messages.ui_new_sketch_custom_template;
 		case sample:
 			return Messages.ui_new_sketch_sample_sketch;
+		default:
+			break;
 		}
 		return null;
 	}
@@ -240,6 +239,25 @@ public class NewSketchWizardCodeSelectionPage extends WizardPage {
 			ret[codeType.ordinal()] = getCodeTypeDescription(codeType);
 		}
 		return ret;
+	}
+
+	private CodeTypes getCodeType() {
+		if (myCodeSourceOptionsCombo == null) {
+			return CodeTypes.None;
+		}
+		return CodeTypes.values()[Math.max(0, myCodeSourceOptionsCombo.getSelectionIndex())];
+	}
+
+	public void setSketchWizardPage(NewSketchWizardBoardPage arduinoPage) {
+		myArduinoPage = arduinoPage;
+
+	}
+
+	private CodeDescription getCodeDescr() {
+		if(myCodedescriptor==null) {
+			myCodedescriptor=CodeDescription.createLastUsed(myArduinoPage.getBoardDescriptor());
+		}
+		return myCodedescriptor;
 	}
 
 }

@@ -2,10 +2,10 @@
 <feature
       id="io.sloeber.feature"
       label="%featureName"
-      version="4.3.3.qualifier"
+      version="5.0.0.qualifier"
       provider-name="%provider">
 
-   <description url="http://sloeber.io">
+   <description url="http://eclipse.baeyens.it">
       %description
    </description>
 
@@ -34,42 +34,35 @@ If you do not agree with this policy, please do not install this software.
 
    <requires>
       <import feature="org.eclipse.cdt" version="9.5.0" match="greaterOrEqual"/>
-      <import feature="org.eclipse.nebula.widgets.oscilloscope.feature" version="1.0.0" match="greaterOrEqual"/>
+      <import feature="org.eclipse.nebula.widgets.oscilloscope.feature" version="0.0.0" match="greaterOrEqual"/>
    </requires>
 
    <plugin
          id="io.sloeber.core"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
+         version="0.0.0"/>
 
    <plugin
          id="io.sloeber.ui.nl1"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         fragment="true"/>
+         version="0.0.0"/>
 
    <plugin
          id="io.sloeber.ui"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
+         version="0.0.0"/>
 
    <plugin
          id="io.sloeber.core.nl1"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         fragment="true"
-         unpack="false"/>
+         version="0.0.0"/>
 
    <plugin
-         id="io.sloeber.application"
-         download-size="0"
-         install-size="0"
+         id="com.github.luben.zstd-jni"
+         version="0.0.0"/>
+
+   <plugin
+         id="io.sloeber.autoBuild"
+         version="0.0.0"/>
+
+   <plugin
+         id="io.sloeber.autoBuild.ui"
          version="0.0.0"/>
 
 </feature>

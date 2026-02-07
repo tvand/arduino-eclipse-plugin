@@ -4,13 +4,12 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
-import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.eclipse.ui.progress.UIJob;
 import org.eclipse.ui.statushandlers.StatusManager;
 import org.osgi.framework.BundleContext;
 
-import io.sloeber.core.api.LibraryManager;
+import io.sloeber.arduinoFramework.api.LibraryManager;
 import io.sloeber.ui.helpers.MyPreferences;
 import io.sloeber.ui.listeners.MyLibraryInstallHandler;
 import io.sloeber.ui.listeners.ProjectExplorerListener;
@@ -21,19 +20,13 @@ import io.sloeber.ui.listeners.ProjectExplorerListener;
  * @author Jan Baeyens
  *
  */
+@SuppressWarnings("nls")
 public class Activator extends AbstractUIPlugin {
 
-	private static final String PLUGIN_ID = "io.sloeber.core.ui"; //$NON-NLS-1$
+	public static final String PLUGIN_ID = "io.sloeber.core.ui"; //$NON-NLS-1$
+	public static final String NODE_ARDUINO = "io.sloeber.arduino";
 	private static Activator instance;
 	private static BundleContext myContext;
-
-	/**
-	 * This is a wrapper method to quickly make the dough code that is the basis
-	 * of the io.sloeber.core.managers and io.sloeber.core.managers.ui to work.
-	 */
-	public static String getId() {
-		return PLUGIN_ID;
-	}
 
 	private static void runGUIRegistration() {
 		UIJob installJob = new UIJob("Gui Registration") { //$NON-NLS-1$
@@ -41,7 +34,7 @@ public class Activator extends AbstractUIPlugin {
 			@Override
 			public IStatus runInUIThread(IProgressMonitor monitor) {
 				ProjectExplorerListener.registerListener();
-				LibraryManager.registerInstallLibraryHandler(new MyLibraryInstallHandler());;
+				LibraryManager.registerInstallLibraryHandler(new MyLibraryInstallHandler());
 				return Status.OK_STATUS;
 			}
 
@@ -62,8 +55,7 @@ public class Activator extends AbstractUIPlugin {
 	/**
 	 * Logs the status information
 	 *
-	 * @param status
-	 *            the status information to log
+	 * @param status the status information to log
 	 */
 	public static void log(IStatus status) {
 		int style;
@@ -83,30 +75,6 @@ public class Activator extends AbstractUIPlugin {
 		MyPreferences.setCleanSerialMonitorAfterUpload(MyPreferences.getCleanSerialMonitorAfterUpload());
 	}
 
-	/**
-	 * Returns an image descriptor for the image file at the given plug-in
-	 * relative path
-	 *
-	 * @param path
-	 *            the path
-	 * @return the image descriptor
-	 */
-	public static ImageDescriptor getImageDescriptor(String path) {
-		return imageDescriptorFromPlugin(PLUGIN_ID, path);
-	}
-
-	public static final short PLOTTER_START_DATA = (short) 0xCDAB;// This is the
-	// 205 171 or
-	// -85 -51 flag
-	// that
-	// indicates
-	// plotter data
-	// is following
-	// least
-	// significant
-	// first
-	// 0xCDAB;
-
 	@Override
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
@@ -116,9 +84,4 @@ public class Activator extends AbstractUIPlugin {
 		runGUIRegistration();
 	}
 
-	@Override
-	public void stop(BundleContext context) throws Exception {
-		// nothing to do here
-
-	}
 }

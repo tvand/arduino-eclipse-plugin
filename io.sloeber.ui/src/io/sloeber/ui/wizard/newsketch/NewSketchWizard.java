@@ -1,13 +1,15 @@
 package io.sloeber.ui.wizard.newsketch;
 
-import java.lang.reflect.InvocationTargetException;
+import static io.sloeber.ui.Activator.*;
+
+import java.net.URI;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExecutableExtension;
-import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.Wizard;
@@ -15,16 +17,14 @@ import org.eclipse.ui.INewWizard;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.actions.WorkspaceModifyOperation;
 import org.eclipse.ui.dialogs.WizardNewProjectCreationPage;
 import org.eclipse.ui.wizards.newresource.BasicNewProjectResourceWizard;
 import org.eclipse.ui.wizards.newresource.BasicNewResourceWizard;
 
-import io.sloeber.core.api.BoardDescriptor;
-import io.sloeber.core.api.CodeDescriptor;
-import io.sloeber.core.api.CompileOptions;
-import io.sloeber.core.api.ConfigurationDescriptor;
-import io.sloeber.ui.Activator;
+import io.sloeber.arduinoFramework.api.BoardDescription;
+import io.sloeber.core.api.CodeDescription;
+import io.sloeber.core.api.CompileDescription;
+import io.sloeber.core.api.SloeberProject;
 import io.sloeber.ui.Messages;
 import io.sloeber.ui.helpers.MyPreferences;
 
@@ -40,6 +40,7 @@ public class NewSketchWizard extends Wizard implements INewWizard, IExecutableEx
 			Messages.ui_new_sketch_arduino_information);
 	protected NewSketchWizardCodeSelectionPage mNewArduinoSketchWizardCodeSelectionPage = new NewSketchWizardCodeSelectionPage(
 			Messages.ui_new_sketch_sketch_template_location);
+	private NewProjectSourceLocationPage mySourceLocationPage= new NewProjectSourceLocationPage("code location page"); //$NON-NLS-1$
 	private IConfigurationElement mConfig;
 	private IProject mProject;
 
@@ -68,9 +69,12 @@ public class NewSketchWizard extends Wizard implements INewWizard, IExecutableEx
 		//
 		// settings for template file location
 		//
-		this.mNewArduinoSketchWizardCodeSelectionPage.setTitle(Messages.ui_new_sketch_sketch_template_folder);
-		this.mNewArduinoSketchWizardCodeSelectionPage
+		mNewArduinoSketchWizardCodeSelectionPage.setTitle(Messages.ui_new_sketch_sketch_template_folder);
+		mNewArduinoSketchWizardCodeSelectionPage
 				.setDescription(Messages.ui_new_sketch_error_folder_must_contain_sketch_cpp);
+		mNewArduinoSketchWizardCodeSelectionPage.setSketchWizardPage(mArduinoPage);
+
+
 
 		//
 		// actually add the pages to the wizard
@@ -78,8 +82,7 @@ public class NewSketchWizard extends Wizard implements INewWizard, IExecutableEx
 		addPage(this.mWizardPage);
 		addPage(this.mArduinoPage);
 		addPage(this.mNewArduinoSketchWizardCodeSelectionPage);
-		BoardDescriptor boardID = this.mArduinoPage.getBoardID();
-		this.mNewArduinoSketchWizardCodeSelectionPage.setBoardDescriptor(boardID);
+		addPage(mySourceLocationPage);
 	}
 
 	@Override
@@ -87,25 +90,22 @@ public class NewSketchWizard extends Wizard implements INewWizard, IExecutableEx
 		if (this.mProject != null) {
 			return true;
 		}
-
-		WorkspaceModifyOperation op = new WorkspaceModifyOperation() {
-			@Override
-			protected void execute(IProgressMonitor monitor) throws CoreException {
-				createProjectWrapper(monitor);
-			}
-		};
-
-		try {
-			getContainer().run(false, true, op);
-		} catch (InvocationTargetException | InterruptedException e) {
-			Activator.log(new Status(IStatus.ERROR, Activator.getId(),
-					Messages.ui_new_sketch_error_failed_to_create_project, e));
-			return false;
-		}
+		BoardDescription boardDescription = this.mArduinoPage.getBoardDescriptor();
+		CodeDescription codeDescription = this.mNewArduinoSketchWizardCodeSelectionPage.getCodeDescription();
+		codeDescription.setCodeFolder(mySourceLocationPage.getSourceCodeLocation());
+		CompileDescription compileDescription = new CompileDescription();
+		URI locationURI = (!this.mWizardPage.useDefaults()) ? this.mWizardPage.getLocationURI() : null;
+		compileDescription.setEnableParallelBuild(MyPreferences.getEnableParallelBuildForNewProjects());
+		boardDescription.saveUserSelection();
+		this.mProject = SloeberProject.createArduinoProject(this.mWizardPage.getProjectName(),
+				locationURI, boardDescription, codeDescription, compileDescription, new NullProgressMonitor());
 
 		if (this.mProject == null) {
+			log(new Status(IStatus.ERROR, PLUGIN_ID,
+					Messages.ui_new_sketch_error_failed_to_create_project));
 			return false;
 		}
+
 
 		// so now we set Eclipse to the right perspective and switch to our just
 		// created project
@@ -115,25 +115,6 @@ public class NewSketchWizard extends Wizard implements INewWizard, IExecutableEx
 		BasicNewResourceWizard.selectAndReveal(this.mProject, TheWindow);
 
 		return true;
-	}
-
-	protected void createProjectWrapper(IProgressMonitor monitor) {
-
-		BoardDescriptor boardID = this.mArduinoPage.getBoardID();
-		CodeDescriptor codeDescription = this.mNewArduinoSketchWizardCodeSelectionPage.getCodeDescription();
-		try {
-			CompileOptions compileOptions = new CompileOptions(null);
-			compileOptions.setEnableParallelBuild(MyPreferences.getEnableParallelBuildForNewProjects());
-			this.mProject = boardID.createProject(this.mWizardPage.getProjectName(),
-					(!this.mWizardPage.useDefaults()) ? this.mWizardPage.getLocationURI() : null,
-					ConfigurationDescriptor.getDefaultDescriptors(), codeDescription, compileOptions,
-					monitor);
-
-		} catch (Exception e) {
-			this.mProject = null;
-			Activator.log(new Status(IStatus.ERROR, Activator.getId(),
-					Messages.ui_new_sketch_error_failed_to_create_project, e));
-		}
 	}
 
 	@Override

@@ -48,7 +48,7 @@ if (isset ( $_GET ["OS"] ))
 
     <div class="container" role="main">
       <div class="page-header">
-        <h1>Nightly Builds <small>use only if you feel confident</small></h1>"
+        <h1>Nightly Builds <small>use only if you feel confident</small></h1>
       </div>
       		<p>Every night, a little gnome called Jenkins walks around our servers looking for
 			changes occurred during the day and, when he finds any, he feels so
@@ -56,31 +56,25 @@ if (isset ( $_GET ["OS"] ))
 		<p>
 			Beware though, as the nightly build represents the latest and
 			greatest version off the code, but
-			<mark>there is no guarantee that these versions do not contain any
-				issue</mark>
-			(they probably do) as the little gnome is not renowned for his
-			patience and he doesn't test the build extensively: actually he runs
-			away right after launching it!</p>
-			<P>And probably worse: The nightly is the playground of the contributors.
-			No testing has been done, no validation has been done.</P>
-		<P>In contrast to the stable the nightly product downloads do not contain a java run time.</P>
+			<mark>there is no guarantee that these versions are stable</mark>
+			(they probably are not). It is build from the latest sources, without extensive checking</p>
+			
+	        <p>     And probably worse: The nightly is the playground of the contributors.
+			No testing has been done, no validation has been done.</p>
 
-
-        <h2>Some recent changes:</h2>
-        <p>Due to a DDos attack I needed to move files around. As a consequence I no longer offer a list of latest nightlies.</p>
-        <p>
-        $version
-         <?php echo '<a href="https://oss.sonatype.org/content/repositories/snapshots/com/github/brodykenrick/arduino-eclipse-plugin/io.sloeber.product/' . $version . '-SNAPSHOT/"  target="_blank">';?>
-        This download page is the travis build. Download the tar.gz for your os.</a></p>
-        <p>Note that there are multiple versions. The latest are at the bottom.</p>
-        <p>Mac users read the <a href="http://eclipse.baeyens.it/installAdvice.shtml#">mac specific info</a>.</p>
-
-
+      <h3>Downloading a nighty product</h3>
+      <p>Every build on GitHub contains an Artifacts section. You can download the latest product from the artifacts section by finding the latest successful master 
+	      build by clicking on this link:</p>
+	    <p><a href="https://github.com/Sloeber/arduino-eclipse-plugin/actions?query=branch%3Amaster" target="_blank"><b>* Latest GitHub builds</b></a></p>
+      <p>The latest Sloeber products come with an embedded JRE.</p>
+	    
 
       <h3>Eclipse Update Site</h3>
       <p>Alternatively you can get the latest nightly build by setting the following update site within an existing Sloeber installation.</p>
-      <p>You can not upgrade from V3 to V4!!!!</p>
-      <p>Even worse: you can install V3 and V4 in the same eclipse installation causing all kind of wierd side effects. So don't do it</p>
+      <h2>The latest nightly needs at least java 11!!!!</h2>
+      <p>The latest Sloeber products come with an embedded JRE. 
+	      If you are running the product, you must install the latest stable product first
+	      before you update from the nightly update site.</p>
       <div class="row">
         <div class="col-md-4 col-md-offset-4">
         			<?php

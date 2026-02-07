@@ -14,7 +14,6 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
 import io.sloeber.core.Activator;
-import io.sloeber.core.common.Common;
 
 /**
  * the Stream class is used to read the board.txt file
@@ -43,7 +42,7 @@ public class Stream {
 				input = Stream.class.getResourceAsStream(Resource);
 			}
 			if (input == null) {
-				Common.log(new Status(IStatus.ERROR, Activator.getId(),
+				Activator.log(new Status(IStatus.ERROR, Activator.getId(),
 						"openContentStream: resource " + Resource + " not found.\nThe file will not be processed!")); //$NON-NLS-1$ //$NON-NLS-2$
 				return null;
 			}
@@ -53,7 +52,7 @@ public class Stream {
 
 				while ((line = reader.readLine()) != null) {
 					for (Entry<String, String> currentReplace : replacers.entrySet()) {
-						line = line.replaceAll(currentReplace.getKey(), currentReplace.getValue());
+						line = line.replace(currentReplace.getKey(), currentReplace.getValue());
 					}
 					stringBuffer.append(line);
 					stringBuffer.append(newline);
@@ -70,8 +69,8 @@ public class Stream {
 				}
 			}
 			input = null;
-			IStatus status = new Status(IStatus.ERROR, "NewFileWizard", IStatus.OK, ioe.getLocalizedMessage(), null); //$NON-NLS-1$
-			Common.log(status);
+			IStatus status = new Status(IStatus.ERROR, "NewFileWizard", IStatus.OK, ioe.getLocalizedMessage(), ioe); //$NON-NLS-1$
+			Activator.log(status);
 			throw new CoreException(status);
 		} finally {
 			if (input != null) {

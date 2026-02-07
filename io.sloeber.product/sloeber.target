@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?pde version="3.8"?>
+<target includeMode="feature" name="Sloeber">
+	<locations>
+		<location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+			<repository location="https://download.eclipse.org/releases/latest"/>
+			<unit id="org.eclipse.cdt.autotools.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.cdt.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.cdt.gnu.multicorevisualizer.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.cdt.launch.remote.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.cdt.managedbuilder.llvm.feature.group" version="0.0.0"/>
+
+			<unit id="org.eclipse.cdt.sdk.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.cdt.testsrunner.feature.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.linuxtools.cdt.libhover.feature.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.cdt.build.crossgcc.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.cdt.debug.gdbjtag.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.cdt.debug.ui.memory.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.sdk.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.pde.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.equinox.sdk.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.rse.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.rse.useractions.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.rse.core.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.rse.dstore.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.rse.ftp.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.rse.local.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.rse.ssh.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.rse.telnet.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.emf.common.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.emf.common.ui.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.emf.ecore.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.emf.sdk.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.epp.mpc.feature.group" version="0.0.0"/>
+		</location>
+		<location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+			<repository location="https://download.eclipse.org/nebula/releases/latest/"/>
+			<unit id="org.eclipse.nebula.widgets.oscilloscope.css.feature.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.nebula.widgets.oscilloscope.feature.feature.group" version="0.0.0"/>
+		</location>
+		<location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+			<repository location="http://download.eclipse.org/mylyn/releases/latest"/>
+			<unit id="org.eclipse.mylyn.context_feature.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.mylyn_feature.feature.group" version="0.0.0"/>
+		</location>
+		<location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+			<repository location="https://download.eclipse.org/egit/updates"/>
+			<unit id="org.eclipse.egit.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.egit.source.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.jgit.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.egit.gitflow.feature.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.jgit.gpg.bc.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.jgit.http.apache.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.jgit.lfs.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.jgit.pgm.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.jgit.source.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.jgit.ssh.apache.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.jgit.ssh.jsch.feature.group" version="0.0.0"/>
+		</location>
+		<location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+			<repository location="https://download.eclipse.org/eclipse/updates/latest"/>
+
+		</location>
+		<location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+			<repository location="https://download.eclipse.org/justj/jres/21/updates/release/latest"/>
+			<unit id="org.eclipse.justj.openjdk.hotspot.jre.full.feature.group"/>
+		</location>
+		<location includeDependencyDepth="none" includeDependencyScopes="compile" includeSource="true" label="DirectFromMaven" missingManifest="error" type="Maven">
+			<dependencies>
+				<dependency>
+					<groupId>com.github.luben</groupId>
+					<artifactId>zstd-jni</artifactId>
+					<version>1.5.6-8</version>
+					<type>jar</type>
+				</dependency>
+				<dependency>
+					<groupId>com.google.code.gson</groupId>
+					<artifactId>gson</artifactId>
+					<version>2.13.2</version>
+					<type>jar</type>
+				</dependency>
+				<dependency>
+					<groupId>commons-io</groupId>
+					<artifactId>commons-io</artifactId>
+					<version>2.21.0</version>
+					<type>jar</type>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.commons</groupId>
+					<artifactId>commons-compress</artifactId>
+					<version>1.28.0</version>
+					<type>jar</type>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.commons</groupId>
+					<artifactId>commons-lang3</artifactId>
+					<version>3.20.0</version>
+					<type>jar</type>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-api</artifactId>
+					<version>2.24.3</version>
+					<type>jar</type>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-core</artifactId>
+					<version>2.24.3</version>
+					<type>jar</type>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-slf4j2-impl</artifactId>
+					<version>2.24.3</version>
+					<type>jar</type>
+				</dependency>
+			</dependencies>
+		</location>
+	</locations>
+</target>

@@ -1,18 +1,19 @@
 
 package io.sloeber.ui.preferences;
 
-import org.eclipse.cdt.core.parser.util.StringUtil;
+import static io.sloeber.ui.Activator.*;
+
+import java.util.Arrays;
+import java.util.HashSet;
+
+import org.eclipse.cdt.ui.newui.MultiLineTextFieldEditor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.preferences.ConfigurationScope;
-import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
-import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.forms.events.HyperlinkAdapter;
@@ -20,59 +21,52 @@ import org.eclipse.ui.forms.events.HyperlinkEvent;
 import org.eclipse.ui.forms.widgets.Hyperlink;
 import org.eclipse.ui.preferences.ScopedPreferenceStore;
 
-import io.sloeber.core.api.PackageManager;
-import io.sloeber.core.api.Preferences;
-import io.sloeber.ui.Activator;
+import io.sloeber.arduinoFramework.api.BoardsManager;
+import io.sloeber.ui.JsonMultiLineTextFieldEditor;
 import io.sloeber.ui.Messages;
 import io.sloeber.ui.helpers.MyPreferences;
 
 public class ThirdPartyHardwareSelectionPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
-	private static final String KEY_UPDATE_JASONS = "Update jsons files"; //$NON-NLS-1$
-	private Text urlsText;
-	BooleanFieldEditor upDateJsons;
+	@Override
+	protected void initialize() {
+		super.initialize();
+		urlsText.setText(BoardsManager.getJsonURLList());
+	}
+
+	private static final String KEY_JSONS = "Jsons files"; //$NON-NLS-1$
+	private JsonMultiLineTextFieldEditor urlsText;
 
 	public ThirdPartyHardwareSelectionPage() {
-		super(org.eclipse.jface.preference.FieldEditorPreferencePage.GRID);
+		super(org.eclipse.jface.preference.FieldEditorPreferencePage.FLAT);
 		setDescription(Messages.json_maintain);
 		setPreferenceStore(new ScopedPreferenceStore(ConfigurationScope.INSTANCE, MyPreferences.NODE_ARDUINO));
 	}
 
 	@Override
 	public boolean performOk() {
-		PackageManager.setJsonURLs(this.urlsText.getText().split(System.lineSeparator()));
-		Preferences.setUpdateJsonFiles(this.upDateJsons.getBooleanValue());
+		HashSet<String> toSetList = new HashSet<>(Arrays.asList(urlsText.getStringValue().split(System.lineSeparator())));
+		BoardsManager.setPackageURLs(toSetList);
+		BoardsManager.update(false);
+
 		return super.performOk();
 	}
 
 	@Override
 	protected void performDefaults() {
 		super.performDefaults();
-		this.urlsText.setText(PackageManager.getDefaultURLs());	
+		urlsText.setText(BoardsManager.getDefaultJsonURLs());
 	}
 
 	@Override
 	protected void createFieldEditors() {
-		String selectedJsons[] = PackageManager.getJsonURLList();
 		final Composite parent = getFieldEditorParent();
-		// Composite control = new Composite(parent, SWT.NONE);
-		Label title = new Label(parent, SWT.UP);
-		title.setFont(parent.getFont());
+		GridData gd = new GridData(GridData.FILL,GridData.BEGINNING,true,false);
+		parent.setLayoutData(gd);
 
-		title.setText(Messages.ui_url_for_index_file);
-		title.setLayoutData(new GridData(GridData.VERTICAL_ALIGN_BEGINNING));
+		urlsText =new JsonMultiLineTextFieldEditor(KEY_JSONS,Messages.ui_url_for_index_file,MultiLineTextFieldEditor.UNLIMITED,MultiLineTextFieldEditor.VALIDATE_ON_KEY_STROKE,parent);
+		addField(urlsText);
 
-		this.urlsText = new Text(parent, SWT.MULTI | SWT.V_SCROLL | SWT.BORDER | SWT.WRAP);
-		GridData gd = new GridData(GridData.FILL_BOTH);
-		this.urlsText.setLayoutData(gd);
-		this.urlsText.setText(StringUtil.join(selectedJsons, System.lineSeparator()));
 
-		this.upDateJsons = new BooleanFieldEditor(KEY_UPDATE_JASONS, Messages.json_update, BooleanFieldEditor.DEFAULT,
-				parent);
-		addField(this.upDateJsons);
-		IPreferenceStore prefstore=getPreferenceStore();
-		prefstore.setValue(KEY_UPDATE_JASONS, Preferences.getUpdateJsonFiles());
-		prefstore.setDefault(KEY_UPDATE_JASONS, true);
-		
 		final Hyperlink link = new Hyperlink(parent, SWT.NONE);
 		link.setText(Messages.json_find);
 		link.setHref("https://github.com/arduino/Arduino/wiki/Unofficial-list-of-3rd-party-boards-support-urls"); //$NON-NLS-1$
@@ -83,7 +77,7 @@ public class ThirdPartyHardwareSelectionPage extends FieldEditorPreferencePage i
 				try {
 					org.eclipse.swt.program.Program.launch(link.getHref().toString());
 				} catch (IllegalArgumentException e) {
-					Activator.log(new Status(IStatus.ERROR, Activator.getId(), Messages.json_browser_fail, e));
+					log(new Status(IStatus.ERROR, PLUGIN_ID, Messages.json_browser_fail, e));
 				}
 			}
 		});

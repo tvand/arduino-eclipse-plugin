@@ -55,7 +55,30 @@ $files = array(
 
     "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_3_2/V4.3.2_mac64.2019-10-07_08-26-30.tar.gz",
     "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_3_2/V4.3.2_win64.2019-10-07_08-26-30.tar.gz",
-    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_3_2/V4.3.2_linux64.2019-10-07_08-26-30.tar.gz"
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_3_2/V4.3.2_linux64.2019-10-07_08-26-30.tar.gz",
+    
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_3_3/V4.3.3_linux64.2020-04-23_11-36-51.zip",
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_3_3/V4.3.3_mac64.2020-04-23_11-36-51.zip",
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_3_3/V4.3.3_win64.2020-04-23_11-36-51.zip",
+    
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_0/V4.4.0_linux64.2021-07-04_06-48-31.zip",
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_0/V4.4.0_mac64.2021-07-04_06-48-31.zip",
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_0/V4.4.0_win64.2021-07-04_06-48-31.zip",
+    
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_1_0/V4.4.1_linux64.2022-07-09_05-48-31.zip",
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_1_0/V4.4.1_mac64.2022-09-05_06-48-31.zip",
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_1_0/V4.4.1_win64.2022-09-05_06-48-31.zip",
+    
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_2_0/sloeber-ide-V4.4.2-linux.gtk.x86_64.tar.gz",
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_2_0/sloeber-ide-V4.4.2-macosx.cocoa.aarch64.zip",
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_2_0/sloeber-ide-V4.4.2-macosx.cocoa.x86_64.zip",
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_2_0/sloeber-ide-V4.4.2-win32.win32.x86_64.zip",
+    
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_3_0/sloeber-ide-V4.4.3-linux.gtk.x86_64.tar.gz",
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_3_0/sloeber-ide-V4.4.3-macosx.cocoa.aarch64.zip",
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_3_0/sloeber-ide-V4.4.3-macosx.cocoa.x86_64.zip",
+    "https://github.com/Sloeber/arduino-eclipse-plugin/releases/download/V4_4_3_0/sloeber-ide-V4.4.3-win32.win32.x86_64.zip",
+    
 );
 
 ?>

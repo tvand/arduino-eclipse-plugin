@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Sloeber user interface
 Bundle-SymbolicName: io.sloeber.ui;singleton:=true
-Bundle-Version: 4.3.3.qualifier
+Bundle-Version: 5.0.0.qualifier
 Bundle-Activator: io.sloeber.ui.Activator
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
@@ -13,21 +13,27 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.ui.forms,
  org.eclipse.ui.ide,
  org.eclipse.debug.ui,
- org.eclipse.nebula.widgets.oscilloscope;bundle-version="1.0.0"
-Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+ org.apache.commons.commons-io,
+ io.sloeber.autoBuild,
+ org.eclipse.jface,
+ io.sloeber.autoBuild.ui,
+ org.eclipse.swt
+Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Import-Package: org.apache.commons.io;version="2.2.0",
- org.apache.commons.lang
 Bundle-Vendor: Sloeber.io
-Export-Package: io.sloeber.ui;x-internal:=true,
+Export-Package: io.sloeber.ui.monitor;x-friends:="io.sloeber.tests",
+ io.sloeber.ui.monitor.internal;x-friends:="io.sloeber.tests",
+ io.sloeber.ui;x-internal:=true,
  io.sloeber.ui.actions;x-internal:=true,
+ io.sloeber.ui.core;uses:="org.eclipse.ui",
  io.sloeber.ui.core.launchconfig;x-internal:=true,
  io.sloeber.ui.helpers;x-internal:=true,
  io.sloeber.ui.listeners;x-internal:=true,
- io.sloeber.ui.monitor;uses:="org.eclipse.jface.resource,org.eclipse.ui.plugin,org.osgi.framework",
+ io.sloeber.ui.monitor;uses:="org.eclipse.swt.widgets",
  io.sloeber.ui.monitor.internal;x-internal:=true,
  io.sloeber.ui.monitor.views;x-internal:=true,
  io.sloeber.ui.preferences;x-internal:=true,
  io.sloeber.ui.project.properties;x-internal:=true,
+ io.sloeber.ui.wizard;uses:="org.eclipse.ui,org.eclipse.jface.wizard,org.eclipse.jface.viewers",
  io.sloeber.ui.wizard.newsketch;x-internal:=true
 Automatic-Module-Name: io.sloeber.ui

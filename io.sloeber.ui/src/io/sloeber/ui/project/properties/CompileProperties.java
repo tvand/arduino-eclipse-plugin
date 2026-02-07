@@ -1,34 +1,34 @@
 package io.sloeber.ui.project.properties;
 
-import org.eclipse.cdt.core.settings.model.ICConfigurationDescription;
+import java.util.Arrays;
+
 import org.eclipse.cdt.core.settings.model.ICResourceDescription;
-import org.eclipse.cdt.ui.newui.AbstractCPropertyTab;
 import org.eclipse.cdt.ui.newui.ICPropertyProvider;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.FocusEvent;
+import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Text;
 
-import io.sloeber.core.api.CompileOptions;
+import io.sloeber.core.api.CompileDescription;
+import io.sloeber.core.api.CompileDescription.DebugLevels;
+import io.sloeber.core.api.CompileDescription.SizeCommands;
+import io.sloeber.core.api.CompileDescription.WarningLevels;
+import io.sloeber.ui.LabelCombo;
 import io.sloeber.ui.Messages;
 
-public class CompileProperties extends AbstractCPropertyTab {
-
-	@Override
-	protected void performOK() {
-
-		updateStorageData();
-		if (getConfdesc() != null) {
-			CompileProperties.this.myCompileOptions.save(getConfdesc());
-		}
-		super.performOK();
-	}
-
-	private Button myWarningLevel;
-	private Button mySizeCommand;
+public class CompileProperties extends SloeberCpropertyTab {
+	private LabelCombo myWarningLevel;
+	private Text myCustomWarningLevel;
+	private LabelCombo myDebugLevel;
+	private Text myCustomDebugLevel;
+	private LabelCombo mySizeCommand;
+	private Text myCustomSizeCommand;
 	private Text myCAndCppCommand;
 	private Text myCppCommand;
 	private Text myCCommand;
@@ -36,10 +36,36 @@ public class CompileProperties extends AbstractCPropertyTab {
 	private Text myArchiveCommand;
 	private Text myAssemblyCommand;
 	private Text myLinkCommand;
+	private CompileDescription myCompDesc = new CompileDescription();
 
+	private boolean disableListeners = false;
 
+	protected Listener myLabelComboListener = new Listener() {
+		@Override
+		public void handleEvent(Event e) {
+			if (disableListeners)
+				return;
+			getFromScreen();
+			myCustomWarningLevel.setEnabled(myCompDesc.getWarningLevel() == WarningLevels.CUSTOM);
+			myCustomSizeCommand.setEnabled(myCompDesc.getSizeCommand() == SizeCommands.CUSTOM);
+			myCustomDebugLevel.setEnabled(myCompDesc.getDebugLevel() == DebugLevels.CUSTOM);
+		}
+	};
+	private FocusListener foucusListener = new FocusListener() {
 
-	protected CompileOptions myCompileOptions;
+		@Override
+		public void focusGained(FocusEvent e) {
+			// Not interested
+		}
+
+		@Override
+		public void focusLost(FocusEvent e) {
+			if (disableListeners)
+				return;
+			getFromScreen();
+		}
+
+	};
 
 	private static void createLine(Composite parent, int ncol) {
 		Label line = new Label(parent, SWT.SEPARATOR | SWT.HORIZONTAL | SWT.BOLD);
@@ -48,7 +74,7 @@ public class CompileProperties extends AbstractCPropertyTab {
 		line.setLayoutData(gridData);
 	}
 
-	private Text makeOptionField( String labelText,String toolTipText) {
+	private Text makeOptionField(String labelText, String toolTipText) {
 		// edit field add to C & C++ command line
 		Label label = new Label(this.usercomp, SWT.LEFT);
 		label.setText(labelText);
@@ -57,36 +83,58 @@ public class CompileProperties extends AbstractCPropertyTab {
 		textField.setToolTipText(toolTipText);
 		textField.setEnabled(true);
 		GridData gridData = new GridData(GridData.FILL_HORIZONTAL);
-		gridData.horizontalSpan = 1;
+		gridData.horizontalSpan = 2;
 		gridData.verticalSpan = 2;
 		textField.setLayoutData(gridData);
+		textField.addFocusListener(foucusListener);
 		return textField;
+	}
+
+	// From
+	// https://stackoverflow.com/questions/13783295/getting-all-names-in-an-enum-as-a-string#13783744
+	private static String[] getNames(Class<? extends Enum<?>> e) {
+		return Arrays.stream(e.getEnumConstants()).map(Enum::toString).toArray(String[]::new);
 	}
 
 	@Override
 	public void createControls(Composite parent, ICPropertyProvider provider) {
 		super.createControls(parent, provider);
-		this.myCompileOptions = new CompileOptions(getConfdesc());
+
 		GridLayout theGridLayout = new GridLayout();
-		theGridLayout.numColumns = 2;
-		this.usercomp.setLayout(theGridLayout);
+		theGridLayout.numColumns = 3;
+		usercomp.setLayout(theGridLayout);
 
-		// checkbox show all warnings => Set WARNING_LEVEL=wall else
-		// WARNING_LEVEL=$ARDUINO_WARNING_LEVEL
-		this.myWarningLevel = new Button(this.usercomp, SWT.CHECK);
-		this.myWarningLevel.setText(Messages.ui_show_all_warnings);
-		this.myWarningLevel.setEnabled(true);
-		this.myWarningLevel.setLayoutData(new GridData(SWT.BEGINNING, SWT.BEGINNING, false, false, 2, 1));
+		// combobox to select warning level and optional custom values
 
+		myWarningLevel = new LabelCombo(usercomp, Messages.ui_show_all_warnings, 1, true);
+		myWarningLevel.setItems(getNames(WarningLevels.class));
+		myWarningLevel.addListener(myLabelComboListener);
+
+		myCustomWarningLevel = new Text(usercomp, SWT.BORDER | SWT.LEFT);
+		GridData gridData = new GridData(GridData.FILL_HORIZONTAL);
+		myCustomWarningLevel.setLayoutData(gridData);
+		myCustomWarningLevel.addFocusListener(foucusListener);
+
+		myDebugLevel = new LabelCombo(usercomp, Messages.ui_select_debug_level, 1, true);
+		myDebugLevel.setItems(getNames(DebugLevels.class));
+		myDebugLevel.addListener(myLabelComboListener);
+
+		myCustomDebugLevel = new Text(usercomp, SWT.BORDER | SWT.LEFT);
+		gridData = new GridData(GridData.FILL_HORIZONTAL);
+		myCustomDebugLevel.setLayoutData(gridData);
+		myCustomDebugLevel.addFocusListener(foucusListener);
 
 		// checkbox show alternative size
-		this.mySizeCommand = new Button(this.usercomp, SWT.CHECK);
-		this.mySizeCommand.setText(Messages.ui_Alternative_size);
-		this.mySizeCommand.setEnabled(true);
-		this.mySizeCommand.setLayoutData(new GridData(SWT.BEGINNING, SWT.BEGINNING, false, false, 2, 1));
-;
+		mySizeCommand = new LabelCombo(usercomp, Messages.ui_Alternative_size, 1, true);
+		mySizeCommand.setItems(getNames(SizeCommands.class));
+		mySizeCommand.addListener(myLabelComboListener);
 
-		createLine(this.usercomp, 2);
+		myCustomSizeCommand = new Text(usercomp, SWT.BORDER | SWT.LEFT);
+		gridData = new GridData(GridData.FILL_HORIZONTAL);
+		myCustomSizeCommand.setLayoutData(gridData);
+		myCustomSizeCommand.addFocusListener(foucusListener);
+
+		createLine(this.usercomp, 3);
 		this.myCAndCppCommand = makeOptionField(Messages.ui_append_c_cpp, Messages.ui_append_c_cpp_text);
 		this.myCppCommand = makeOptionField(Messages.ui_append_cpp, Messages.ui_append_cpp_text);
 		this.myCCommand = makeOptionField(Messages.ui_append_c, Messages.ui_append_c_text);
@@ -95,81 +143,99 @@ public class CompileProperties extends AbstractCPropertyTab {
 		this.myLinkCommand = makeOptionField(Messages.ui_append_link, Messages.ui_append_link_text);
 		this.myAllCommand = makeOptionField(Messages.ui_append_all, Messages.ui_append_all_text);
 
-		theGridLayout = new GridLayout();
-		theGridLayout.numColumns = 2;
-		this.usercomp.setLayout(theGridLayout);
-		updateScreenData();
-		setVisible(true);
-	}
-
-	private void updateScreenData() {
-
-		this.myWarningLevel.setSelection(this.myCompileOptions.isWarningLevel());
-		this.mySizeCommand.setSelection(this.myCompileOptions.isAlternativeSizeCommand());
-		this.myCAndCppCommand.setText(this.myCompileOptions.get_C_andCPP_CompileOptions());
-		this.myCCommand.setText(this.myCompileOptions.get_C_CompileOptions());
-		this.myCppCommand.setText(this.myCompileOptions.get_CPP_CompileOptions());
-
-		this.myAllCommand.setText(this.myCompileOptions.get_All_CompileOptions());
-		this.myArchiveCommand.setText(this.myCompileOptions.get_Archive_CompileOptions());
-		this.myAssemblyCommand.setText(this.myCompileOptions.get_Assembly_CompileOptions());
-		this.myLinkCommand.setText(this.myCompileOptions.get_Link_CompileOptions());
-	}
-	private void updateStorageData() {
-
-		this.myCompileOptions.setWarningLevel(this.myWarningLevel.getSelection());
-		this.myCompileOptions.setAlternativeSizeCommand(this.mySizeCommand.getSelection());
-		this.myCompileOptions.set_C_andCPP_CompileOptions(this.myCAndCppCommand.getText());
-		this.myCompileOptions.set_C_CompileOptions(this.myCCommand.getText());
-		this.myCompileOptions.set_CPP_CompileOptions(this.myCppCommand.getText());
-
-		this.myCompileOptions.set_All_CompileOptions(this.myAllCommand.getText());
-		this.myCompileOptions.set_Archive_CompileOptions(this.myArchiveCommand.getText());
-		this.myCompileOptions.set_Assembly_CompileOptions(this.myAssemblyCommand.getText());
-		this.myCompileOptions.set_Link_CompileOptions(this.myLinkCommand.getText());
-	}
-	@Override
-	protected void updateData(ICResourceDescription cfg) {
-		this.myCompileOptions = new CompileOptions(getConfdesc());
-		updateScreenData();
+		updateScreen(false);
 	}
 
 	@Override
-	public boolean canBeVisible() {
-		return true;
+	protected void updateScreen(boolean updateData) {
+		if (mySloeberCfg!=null) {
+			myCompDesc = mySloeberCfg.getCompileDescription();
+		}
+		disableListeners = true;
+		myWarningLevel.setText(myCompDesc.getWarningLevel().toString());
+		myCustomWarningLevel.setEnabled(myCompDesc.getWarningLevel() == WarningLevels.CUSTOM);
+		myCustomWarningLevel.setText(myCompDesc.getWarningLevel().getCustomWarningLevel());
+
+		myDebugLevel.setText(myCompDesc.getDebugLevel().toString());
+		myCustomDebugLevel.setEnabled(myCompDesc.getDebugLevel() == DebugLevels.CUSTOM);
+		myCustomDebugLevel.setText(myCompDesc.getDebugLevel().getCustomDebugLevel());
+
+		mySizeCommand.setText(myCompDesc.getSizeCommand().toString());
+		myCustomSizeCommand.setEnabled(myCompDesc.getSizeCommand() == SizeCommands.CUSTOM);
+		myCustomSizeCommand.setText(myCompDesc.getSizeCommand().getCustomSizeCommand());
+
+		myCAndCppCommand.setText(myCompDesc.get_C_andCPP_CompileOptions());
+		myCCommand.setText(myCompDesc.get_C_CompileOptions());
+		myCppCommand.setText(myCompDesc.get_CPP_CompileOptions());
+		myAllCommand.setText(myCompDesc.get_All_CompileOptions());
+		myArchiveCommand.setText(myCompDesc.get_Archive_CompileOptions());
+		myAssemblyCommand.setText(myCompDesc.get_Assembly_CompileOptions());
+		myLinkCommand.setText(myCompDesc.get_Link_CompileOptions());
+
+
+		if (myCompDesc.getWarningLevel() != WarningLevels.CUSTOM) {
+			myCustomWarningLevel.setText(myCompDesc.getWarningLevel().getEnvValue());
+		}
+		if (myCompDesc.getDebugLevel() != DebugLevels.CUSTOM) {
+			myCustomDebugLevel.setText(myCompDesc.getDebugLevel().getEnvValue());
+		}
+		if (myCompDesc.getSizeCommand() != SizeCommands.CUSTOM) {
+			myCustomSizeCommand.setText(myCompDesc.getSizeCommand().getEnvValue());
+		}
+
+
+		disableListeners = false;
 	}
 
-	@Override
-	protected void updateButtons() {
-		// nothing to do here
+	private void getFromScreen() {
+
+		WarningLevels warningLevel = WarningLevels.values()[myWarningLevel.getSelectionIndex()];
+		warningLevel.setCustomWarningLevel(myCustomWarningLevel.getText());
+
+		DebugLevels debugLevel = DebugLevels.values()[myDebugLevel.getSelectionIndex()];
+		debugLevel.setCustomDebugLevel(myCustomDebugLevel.getText());
+
+		SizeCommands sizeCommand = SizeCommands.values()[mySizeCommand.getSelectionIndex()];
+		sizeCommand.setCustomSizeCommand(myCustomSizeCommand.getText());
+
+		if(warningLevel!=WarningLevels.CUSTOM) {
+		myCustomWarningLevel.setText(warningLevel.getEnvValue());
+		}
+		if(debugLevel!=DebugLevels.CUSTOM) {
+			myCustomDebugLevel.setText(debugLevel.getEnvValue());
+		}
+		if(sizeCommand!=SizeCommands.CUSTOM) {
+			myCustomSizeCommand.setText(sizeCommand.getEnvValue());
+		}
+
+
+
+		myCompDesc.setWarningLevel(warningLevel);
+		myCompDesc.setDebugLevel(debugLevel);
+		myCompDesc.setSizeCommand(sizeCommand);
+		myCompDesc.set_C_andCPP_CompileOptions(this.myCAndCppCommand.getText());
+		myCompDesc.set_C_CompileOptions(this.myCCommand.getText());
+		myCompDesc.set_CPP_CompileOptions(this.myCppCommand.getText());
+		myCompDesc.set_All_CompileOptions(this.myAllCommand.getText());
+		myCompDesc.set_Archive_CompileOptions(this.myArchiveCommand.getText());
+		myCompDesc.set_Assembly_CompileOptions(this.myAssemblyCommand.getText());
+		myCompDesc.set_Link_CompileOptions(this.myLinkCommand.getText());
+		if(mySloeberCfg!=null) {
+			mySloeberCfg.setCompileDescription(myCompDesc);
+		}
 
 	}
 
 	@Override
 	protected void performApply(ICResourceDescription src, ICResourceDescription dst) {
-		updateStorageData();
-		if (dst.getConfiguration() != null) {
-			CompileProperties.this.myCompileOptions.save(dst.getConfiguration());
-		}
+		// TODO Auto-generated method stub
+
 	}
 
 	@Override
 	protected void performDefaults() {
-		this.myCompileOptions = new CompileOptions(null);
-		updateScreenData();
-	}
+		// TODO Auto-generated method stub
 
-	/**
-	 * Get the configuration we are currently working in. The configuration is
-	 * null if we are in the create sketch wizard.
-	 *
-	 * @return the configuration to save info into
-	 */
-	protected ICConfigurationDescription getConfdesc() {
-		if (this.page != null) {
-			return getResDesc().getConfiguration();
-		}
-		return null;
 	}
 
 }

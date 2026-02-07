@@ -193,12 +193,12 @@
        point="org.eclipse.ui.newWizards">
     <category
           id="io.sloeber.eclipse.newWizards"
-          name="Arduino">
+          name="Sloeber">
     </category>
     <wizard
           category="io.sloeber.eclipse.newWizards"
           class="io.sloeber.ui.wizard.newsketch.NewSketchWizard"
-          finalPerspective="io.sloeber.application.perspective"
+          finalPerspective="io.sloeber.product.perspective"
           icon="icons/new.png"
           id="io.sloeber.eclipse.NewArduinoSketchWizard"
           name="%wizard.new.sketch.name"
@@ -210,13 +210,30 @@
     <primaryWizard
           id="io.sloeber.eclipse.NewArduinoSketchWizard">
     </primaryWizard>
+    <wizard
+          canFinishEarly="true"
+          category="io.sloeber.eclipse.newWizards"
+          class="io.sloeber.ui.wizard.ConvertToSloeber"
+          finalPerspective="io.sloeber.product.perspective"
+          hasPages="false"
+          icon="icons/convertToSloeber.png"
+          id="io.sloeber.convert.wizard"
+          name="%wizard.convert.sloeber.name"
+          project="true">
+       <selection
+             class="org.eclipse.core.resources.IProject">
+       </selection>
+              <description>
+          %wizard.convert.sloeber.description
+       </description>
+    </wizard>
  </extension>
  <extension
        point="org.eclipse.ui.propertyPages">
     <page
           class="io.sloeber.ui.project.properties.PropertyPage"
           id="io.sloeber.eclipse.propertypage.ArduinoProperty"
-          name="Arduino">
+          name="Sloeber">
        <filter
              name="projectNature"
              value="io.sloeber.arduinonature">
@@ -237,7 +254,7 @@
           point="org.eclipse.ui.importWizards">
        <category
              id="io.sloeber.eclipse.importWizards"
-             name="Arduino">
+             name="Sloeber">
        </category>
        <wizard
              category="io.sloeber.eclipse.importWizards"
@@ -288,7 +305,7 @@
     <page
           class="io.sloeber.ui.preferences.PreferencePage"
           id="io.sloeber.eclipse.ArduinoPreferencePage"
-          name="Arduino">
+          name="Sloeber">
     </page>
     <page
           category="io.sloeber.eclipse.ArduinoPreferencePage"
@@ -308,20 +325,40 @@
           id="io.sloeber.eclipse.libraries"
           name="%page.preferences.libraries.name">
     </page>
+    <page
+          category="io.sloeber.eclipse.ArduinoPreferencePage"
+          class="io.sloeber.ui.preferences.TargetSerialDisconnectPage"
+          id="io.sloeber.eclipse.tagets"
+          name="%page.preferences.targets.name">
+    </page>
  </extension>
   <extension
        point="org.eclipse.ui.commands">
     <category
           description="%category.arduino.description"
           id="io.sloeber.commands"
-          name="Arduino">
+          name="Sloeber">
     </category>
     <command
           categoryId="io.sloeber.commands"
           defaultHandler="io.sloeber.ui.actions.UploadProjectHandler"
           description="%command.upload.description"
-          id="io.sloeber.actions.UploadprojectAction"
+          id="io.sloeber.actions.UploadProjectAction"
           name="%command.upload.label">
+    </command>
+    <command
+          categoryId="io.sloeber.commands"
+          defaultHandler="io.sloeber.ui.actions.ProgramProjectHandler"
+          description="%command.program.description"
+          id="io.sloeber.actions.ProgramProjectAction"
+          name="%command.program.label">
+    </command>
+    <command
+          categoryId="io.sloeber.commands"
+          defaultHandler="io.sloeber.ui.actions.BurnBootloaderHandler"
+          description="%command.burnBootloader.description"
+          id="io.sloeber.actions.BurnBootloaderAction"
+          name="%command.burnBootloader.label">
     </command>
     <command
           categoryId="io.sloeber.commands"
@@ -396,6 +433,30 @@
        </commandParameter>
     </command>
  </extension>
+
+ <!-- Definition to know if the active perspective is Arduino -->
+<extension point="org.eclipse.core.expressions.definitions">
+  <definition id="io.sloeber.definition.isArduinoPerspective">
+    <with variable="activeWorkbenchWindow.activePerspective">
+       <or>
+          <equals
+                value="io.sloeber.product.perspective">
+          </equals>
+          <equals
+                value="org.eclipse.cdt.ui.CPerspective">
+          </equals></or>
+    </with>
+  </definition>
+  <definition id="io.sloeber.definition.hide">
+    <with variable="activeWorkbenchWindow.activePerspective">
+          <equals
+                value="io.sloeber.does.not.exists">
+          </equals>
+    </with>
+  </definition>
+</extension>
+
+
   <extension
        point="org.eclipse.ui.menus">
     <menuContribution
@@ -403,12 +464,6 @@
        <toolbar
              id="io.sloeber.toolbar.main"
              label="Sloeber">
-          <visibleWhen
-                checkEnabled="false">
-             <reference
-                   definitionId="io.sloeber.definition.isArduinoPerspective">
-             </reference>
-          </visibleWhen>
           <command
                 commandId="io.sloeber.actions.ArduinoBuildAction"
                 icon="icons/check.png"
@@ -416,7 +471,7 @@
                 style="push">
           </command>
           <command
-                commandId="io.sloeber.actions.UploadprojectAction"
+                commandId="io.sloeber.actions.UploadProjectAction"
                 icon="icons/arrow.png"
                 label="%command.upload.label"
                 style="push">
@@ -445,12 +500,63 @@
                 label="%command.open.Plotter.label"
                 style="push">
           </command>
+          <separator
+                name="io.sloeber.ui.separator2">
+          </separator>
+          <command
+                commandId="io.sloeber.ui.actions.openPreferences"
+                icon="icons/preferences.png"
+                label="%command.project.properties.label"
+                style="push"
+                tooltip="%command.project.properties.description">
+             <parameter
+                   name="io.sloeber.ui.actions.openPreferences.pageId"
+                   value="io.sloeber.eclipse.propertypage.ArduinoProperty">
+             </parameter>
+          </command>
+       </toolbar>
+       <toolbar
+             id="io.sloeber.toolbar.Extra"
+             label="Sloeber Extra tools">
+          <command
+                commandId="io.sloeber.actions.AddLibraryAction"
+                icon="icons/library.png"
+                id="AddLibraryAction"
+                style="push"
+                tooltip="%command.AddLibraryAction.description">
+          </command>
+          <command
+                commandId="io.sloeber.actions.ProgramProjectAction"
+                icon="icons/arrowup.png"
+                id="ProgramProjectAction"
+                tooltip="%command.program.tooltip">
+          </command>
+          <command
+                commandId="io.sloeber.actions.BurnBootloaderAction"
+                icon="icons/arrowdown.png"
+                id="burnBootloaderAction"
+                tooltip="%command.burnBootloader.tooltip">
+          </command>
+          <command
+                commandId="io.sloeber.actions.AddSourceFolderAction"
+                icon="icons/folder.png"
+                id="AddSourceFolderAction"
+                style="push"
+                tooltip="%command.AddSourceFolder.description ">
+          </command>
+          <command
+                commandId="io.sloeber.actions.ReattachLibraries"
+                icon="icons/hammer.png"
+                id="ReattachLibrariesAction"
+                style="push"
+                tooltip="%command.reattachLibraries.description">
+          </command>
        </toolbar>
     </menuContribution>
     <menuContribution
           locationURI="menu:org.eclipse.ui.main.menu??after=Run">
        <menu
-             label="A&amp;rduino">
+             label="Sloebe&amp;r">
           <visibleWhen
                 checkEnabled="false">
              <reference
@@ -465,9 +571,9 @@
                 tooltip="%command.build.project.tooltip">
           </command>
           <command
-                commandId="io.sloeber.actions.UploadprojectAction"
+                commandId="io.sloeber.actions.UploadProjectAction"
                 icon="icons/arrow.png"
-                id="UploadprojectAction"
+                id="UploadProjectAction"
                 tooltip="%command.upload.tooltip">
           </command>
           <command
@@ -512,6 +618,22 @@
           </command>
           <separator
                 name="io.sloeber.core.separator1"
+                visible="true">
+          </separator>
+          <command
+                commandId="io.sloeber.actions.ProgramProjectAction"
+                icon="icons/arrow.png"
+                id="ProgramProjectAction"
+                tooltip="%command.program.tooltip">
+          </command>
+          <command
+                commandId="io.sloeber.actions.BurnBootloaderAction"
+                icon="icons/arrow.png"
+                id="burnBootloaderAction"
+                tooltip="%command.burnBootloader.tooltip">
+          </command>
+          <separator
+                name="io.sloeber.ui.separator2"
                 visible="true">
           </separator>
           <command
@@ -590,47 +712,90 @@
        </menu>
     </menuContribution>
  </extension>
-  <extension
-       point="org.eclipse.ui.perspectiveExtensions">
-    <perspectiveExtension
-          targetID="io.sloeber.application.perspective">
-       <newWizardShortcut
-             id="io.sloeber.eclipse.NewArduinoSketchWizard">
-       </newWizardShortcut>
-    </perspectiveExtension>
- </extension>
-  <extension
-       point="org.eclipse.ui.navigator.navigatorContent">
-    <commonWizard
-          type="new"
-          wizardId="io.sloeber.eclipse.NewArduinoSketchWizard">
-       <enablement>
-          <or>
-             <adapt
-                   type="org.eclipse.core.resources.IProject">
-             </adapt>
-             <adapt
-                   type="org.eclipse.core.resources.IWorkspaceRoot">
-             </adapt>
-          </or>
-       </enablement>
-    </commonWizard>
- </extension>
+         <extension
+              point="org.eclipse.ui.perspectives">
+           <perspective
+			class="io.sloeber.ui.core.PerspectiveFactory"
+			icon="icons/logo_16.png"
+			id="io.sloeber.product.perspective"
+			name="Sloeber">
+           </perspective>
+        </extension>
+           <extension
+         point="org.eclipse.ui.perspectiveExtensions">
+      <perspectiveExtension
+            editorOnboardingText="Sloeber"
+            targetID="io.sloeber.product.perspective">
+         <view
+               id="org.eclipse.ui.navigator.ProjectExplorer"
+               minimized="false"
+               ratio="0.25"
+               relationship="left"
+               relative="org.eclipse.ui.editorss">
+         </view>
+         <view
+               id="org.eclipse.ui.views.PropertySheet"
+               minimized="false"
+               ratio="0.75"
+               relationship="bottom"
+               relative="org.eclipse.ui.editorss">
+         </view>
+         <view
+               id="org.eclipse.ui.views.ProblemView"
+               minimized="false"
+               relationship="stack"
+               relative="org.eclipse.ui.views.PropertySheet">
+         </view>
+         <view
+               id="io.sloeber.ui.monitor.views.SerialMonitor"
+               minimized="false"
+               relationship="stack"
+               relative="org.eclipse.ui.views.ProblemView">
+         </view>
+         <view
+               id="org.eclipse.ui.console.ConsoleView"
+               minimized="false"
+               relationship="stack"
+               relative="org.eclipse.ui.views.ProblemView">
+         </view>
+         <view
+               id="org.eclipse.ui.views.ContentOutline"
+               minimized="false"
+               ratio="0.75"
+               relationship="right"
+               relative="org.eclipse.ui.editorss">
+         </view>
+         <view
+               id="io.sloeber.ui.monitor.views.PlotterView"
+               minimized="false"
+               relationship="stack"
+               relative="org.eclipse.ui.views.ProblemView">
+         </view>
+      </perspectiveExtension>
+   </extension>
    <extension
-        point="org.eclipse.cdt.ui.cPropertyTab">
+         id="io.sloeber.ui.project.properties.Sloeber"
+         name="Sloeber"
+         point="org.eclipse.cdt.ui.cPropertyTab">
      <tab
            class="io.sloeber.ui.project.properties.BoardSelectionPage"
-           icon="platform:/plugin/io.sloeber.application/icons/logo_16.png"
+           icon="icons/logo_16.png"
            name="%tab.board.selection.name"
            parent="io.sloeber.ui.project.properties.PropertyPage"
-           weight="050">
+           weight="010">
      </tab>
      <tab
            class="io.sloeber.ui.project.properties.CompileProperties"
            icon="icons/preferences.png"
            name="%tab.compile.options.name"
            parent="io.sloeber.ui.project.properties.PropertyPage"
-           weight="050">
+           weight="020">
+     </tab>
+     <tab
+           class="io.sloeber.ui.project.properties.OtherProperties"
+           name="other options"
+           parent="io.sloeber.ui.project.properties.PropertyPage"
+           weight="030">
      </tab>
   </extension>
       <extension
@@ -689,11 +854,8 @@
            <commonWizard
                  type="new"
                  wizardId="io.sloeber.eclipse.NewArduinoSketchWizard">
-              <enablement>
-                 <count
-                       value="*">
-                 </count>
-              </enablement>
+              <enablement></enablement>
            </commonWizard>
         </extension>
+
 </plugin>
