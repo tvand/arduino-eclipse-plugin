@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Comparator;
@@ -29,9 +30,46 @@ import io.sloeber.core.Activator;
 
 public class Common {
 
+	public final static String tempFolder=System.getProperty("java.io.tmpdir"); //$NON-NLS-1$
     public final static String sloeberHome = getSloeberHome();
     public final static IPath sloeberHomePath = new Path(sloeberHome);
     public final static String sloeberHomePathToString = sloeberHomePath.toOSString();
+    public final static  boolean SloaberHomePathIsWritable=sloeberHomePath.toFile().canWrite();
+    public final static  boolean SloaberHomePathWritableDocumented=sloeberHomePath.append(SLOEBER_TXT_FILE_NAME).toFile().exists();
+    public final static String SloaberHomeMaintenance=getSloeberHomeMaintenance();
+
+
+    @SuppressWarnings("nls")
+	private static String getSloeberHomeMaintenance() {
+    	if(!SloaberHomePathWritableDocumented) {
+    		//no file found to document why sloeber home is read only
+    		return "Sloeber home is read only. please fix to enable functionality.";
+    	}
+    	try {
+			String txtFile=Files.readString(sloeberHomePath.append(SLOEBER_TXT_FILE_NAME).toPath(), Charset.defaultCharset());
+				int SearchStringIndex = txtFile.indexOf("Maintainer") + 1;
+				if (SearchStringIndex > 0) {
+					int lineStartIndex = txtFile.lastIndexOf("\n", SearchStringIndex) + 1;
+					if (lineStartIndex >= 0) {
+						int lineEndIndex = txtFile.indexOf("\n", lineStartIndex);
+						if (lineEndIndex == -1) {
+							// We are at the last line and it does not end with \n
+							lineEndIndex = txtFile.length();
+						}
+						if (lineEndIndex > lineStartIndex) {
+							String line= txtFile.substring(lineStartIndex, lineEndIndex);
+							String[] lineParts=line.split(EQUAL, 2);
+							if(lineParts.length==2) {
+								return lineParts[1];
+							}
+						}
+					}
+				}
+		} catch (@SuppressWarnings("unused") Exception e) {
+			//just skip and provide error message
+		}
+		return "Sloeber home is read only. Failed to read \"Maintainer=\" in sloeber.txt.";
+    }
 
     private static String getSloeberHome() {
 
@@ -42,20 +80,34 @@ public class Common {
                 	Path localSloeberHomePath= new Path(sloeber_HomeValue);
                 	// if sloeber home is in the root use arduinoPlugin folder
                 	if(localSloeberHomePath.isRoot()) {
-                		return localSloeberHomePath.append(SLOEBER_HOME_SUB_FOLDER).toString();
+                		IPath sloeberFolder=localSloeberHomePath.append(OLD_SLOEBER_HOME_SUB_FOLDER);
+                		createFolderIfNotExists(sloeberFolder);
+                		return sloeberFolder.toString();
                 	}
                 	// if arduinoPlugin folder exists use arduinoPlugin folder
-                	if(localSloeberHomePath.append(SLOEBER_HOME_SUB_FOLDER).toFile().exists()) {
-                		return localSloeberHomePath.append(SLOEBER_HOME_SUB_FOLDER).toString();
+                	if(localSloeberHomePath.append(OLD_SLOEBER_HOME_SUB_FOLDER).toFile().exists()) {
+                		IPath sloeberFolder=localSloeberHomePath.append(OLD_SLOEBER_HOME_SUB_FOLDER);
+                		createFolderIfNotExists(sloeberFolder);
+                		return sloeberFolder.toString();
                 	}
-                    return sloeber_HomeValue;
+            		createFolderIfNotExists(localSloeberHomePath);
+            		return localSloeberHomePath.toString();
                 }
             }
             // no sloeber home provided
             // use eclipse home as sloeber home
             URL resolvedUrl = Platform.getInstallLocation().getURL();
+            //URL resolvedUrl = Platform.getConfigurationLocation().getURL();
             URI resolvedUri = new URI(resolvedUrl.getProtocol(), resolvedUrl.getPath(), null);
-            return Paths.get(resolvedUri).toString()+SLACH+SLOEBER_HOME_SUB_FOLDER;
+            java.nio.file.Path arduinoPluginFolder= Paths.get(resolvedUri).resolve(OLD_SLOEBER_HOME_SUB_FOLDER);
+            if(arduinoPluginFolder.toFile().exists()) {
+            	//If the ArduinoPluginFolder exists use it
+            	return arduinoPluginFolder.toString();
+            }
+            //use the Sloeber folder if this is all new
+            IPath sloeberFolder= IPath.forPosix(Paths.get(resolvedUri).resolve(SLOEBER_HOME_SUB_FOLDER).toString());
+            createFolderIfNotExists(sloeberFolder);
+            return sloeberFolder.toString();
         } catch (URISyntaxException e) {
             // this should not happen
             // but it seems a space in the path makes it happen
@@ -67,7 +119,14 @@ public class Common {
     }
 
 
-    /**
+    private static void createFolderIfNotExists(IPath path) {
+		if(path.toFile().exists()) {
+			return;
+		}
+		path.toFile().mkdirs();
+	}
+
+	/**
      * This method makes sure that a string can be used as a file or folder name
      * <br/>
      * To do this it replaces all unacceptable characters with underscores.<br/>

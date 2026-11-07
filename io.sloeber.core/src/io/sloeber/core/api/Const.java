@@ -15,6 +15,7 @@ public class Const extends AutoBuildConstants {
     //Some private stuff as you should use other defines to get to this name
     private static final String ARDUINO = "arduino";
 
+    public static final String SLOEBER = "sloeber";
     // preference nodes
     public static final String NODE_ARDUINO = "io.sloeber.arduino";
 
@@ -82,7 +83,8 @@ public class Const extends AutoBuildConstants {
     public static final String LOCAL = "local";
 
     // Folder and file Information
-    public static final String SLOEBER_HOME_SUB_FOLDER ="arduinoPlugin";
+    public static final String OLD_SLOEBER_HOME_SUB_FOLDER ="arduinoPlugin";
+    public static final String SLOEBER_HOME_SUB_FOLDER =SLOEBER;
     public static final String ARDUINO_HARDWARE_FOLDER_NAME = HARDWARE;
     public static final String ARDUINO_CODE_FOLDER_NAME = CORE;
     public static final String ARDUINO_VARIANTS_FOLDER_NAME = VARIANTS;
@@ -94,6 +96,9 @@ public class Const extends AutoBuildConstants {
     public static final String SLOEBER_LIBRARY_FQN = "Library";
     public static final String BOARDS_FILE_NAME = "boards" + DOT + TXT;
     public static final String PLATFORM_FILE_NAME = PLATFORM + DOT + TXT;
+    public static final String PROGRAMMER_TXT_FILE_NAME = "programmers" + DOT + TXT;
+    public static final String EXTERNAL_PROGRAMMERS_TXT_FILE_NAME = "externalprogrammers"+ DOT + TXT;
+
 
     public static final String SLOEBER_CFG = "sloeber.cfg";
     public static final String SLOEBER_PROJECT = ".sproject";

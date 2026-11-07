@@ -93,6 +93,7 @@ public class SloeberProject extends Common {
 				}
 
 
+
 				File sloeberDotFile = project.getFile(".sproject").getLocation().toFile(); //$NON-NLS-1$
 				File sloeberCfgFile = project.getFile(SLOEBER_CFG).getLocation().toFile();
 				TxtFile oldSloeberInfo = null;
@@ -150,7 +151,10 @@ public class SloeberProject extends Common {
 							libNames.add(curFolder.getName());
 						}
 					}
+					libFolder.delete(true, monitor);
 				}
+
+
 
 
 				IConfiguration defaultConfig = projectType.getConfigurations()[0];
@@ -259,7 +263,7 @@ public class SloeberProject extends Common {
 
 				SubMonitor refreshMonitor = SubMonitor.convert(internalMonitor, 3);
 				project.open(refreshMonitor);
-				project.refreshLocal(IResource.DEPTH_INFINITE, refreshMonitor);
+				//project.refreshLocal(IResource.DEPTH_INFINITE, refreshMonitor);
 				prjCDesc.setActiveConfiguration(prjCDesc.getConfigurations()[0]);
 				prjCDesc.setCdtProjectCreated();
 
@@ -285,12 +289,10 @@ public class SloeberProject extends Common {
 	}
 
 	private static OtherDescription getOtherDescription(KeyValueTree config) {
-		OtherDescription ret =new OtherDescription();
 		if (config == null) {
-			return ret;
+			return new OtherDescription();
 		}
-		ret.setVersionControlled(Boolean.valueOf(config.getValue("other.IS_VERSION_CONTROLLED")).booleanValue()); //$NON-NLS-1$
-		return ret;
+		return new OtherDescription(config);
 	}
 
 	private static CompileDescription getCompileDescription(KeyValueTree oldConfig) {
@@ -343,7 +345,7 @@ public class SloeberProject extends Common {
 			if(foundBoardsFilePath!=null) {
 				foundBoardsFilePath=foundBoardsFilePath.append(curSegment);
 			}else {
-				if(SLOEBER_HOME_SUB_FOLDER.equals( curSegment)) {
+				if(PACKAGES_FOLDER_NAME.equals( curSegment)) {
 					foundBoardsFilePath=new Path(sloeberHome).append(curSegment);
 				}
 			}

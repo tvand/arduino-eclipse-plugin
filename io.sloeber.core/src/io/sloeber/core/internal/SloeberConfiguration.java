@@ -29,7 +29,6 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
-import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 
@@ -112,7 +111,7 @@ public class SloeberConfiguration extends AutoBuildConfigurationExtensionDescrip
 
 	@Override
 	public OtherDescription getOtherDescription() {
-		return new OtherDescription(myOtherDesc);
+		return new OtherDescription(this,myOtherDesc);
 	}
 
 	@Override
@@ -120,7 +119,7 @@ public class SloeberConfiguration extends AutoBuildConfigurationExtensionDescrip
 		if (myOtherDesc != null && myOtherDesc.needsRebuild(newOtherDesc)) {
 			getAutoBuildDescription().forceCleanBeforeBuild();
 		}
-		myOtherDesc = new OtherDescription(newOtherDesc);
+		myOtherDesc = new OtherDescription(this,newOtherDesc);
 		setIsDirty();
 	}
 
@@ -304,7 +303,9 @@ public class SloeberConfiguration extends AutoBuildConfigurationExtensionDescrip
 				continue;
 			}
 			// Just pick the first none arduino one as there should only be one
-			return getLocation(curEntry);
+			if(curEntry.getLocation()!=null) {
+				return curEntry.getLocation();
+			}
 		}
 		return project.getLocation();
 	}
@@ -320,15 +321,15 @@ public class SloeberConfiguration extends AutoBuildConfigurationExtensionDescrip
 	 * @param entry
 	 * @return
 	 */
-	private static IPath getLocation(ICSourceEntry entry) {
-		if (!entry.isValueWorkspacePath())
-			return new Path(entry.getValue());
-		IPath path = new Path(entry.getValue());
-		IResource rc = ResourcesPlugin.getWorkspace().getRoot().findMember(path);
-		if (rc != null)
-			return rc.getLocation();
-		return entry.getLocation();
-	}
+//	private static IPath getLocation(ICSourceEntry entry) {
+//		if (!entry.isValueWorkspacePath())
+//			return new Path(entry.getValue());
+//		IPath path = new Path(entry.getValue());
+//		IResource rc = ResourcesPlugin.getWorkspace().getRoot().findMember(path);
+//		if (rc != null)
+//			return rc.getLocation();
+//		return entry.getLocation();
+//	}
 
 	/**
 	 * get the text for the decorator
